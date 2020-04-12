@@ -3,7 +3,7 @@
 //                          * Boid Simulation *                           //
 //                                                                        //
 //    Author: Cédric Schoonen <cedric.schoonen1@gmail.com>                //
-//    September 2019                                                      //
+//    September 2019, April 2020                                          //
 //                                                                        //
 //    Developped under Ubuntu 18.04 with g++ 7.4.0 and sfml 2.4           //
 //    Compile with $ g++ -o boids boids.cpp \                             //
@@ -17,11 +17,12 @@
 // (random walk giving the deviation force) (collective or individual?)
 // (follow randomly placed target)
 
-// Bigger bow and partial view folowwing the boids (see DLA rendering code)
+// Bigger box and partial view following the boids (see DLA rendering code)
 
 // Optimisation for better performance (the code has never been optimised)
 	
 ////////////////////////////////////////////////////////////////////////////	    
+
 
 #include <SFML/Graphics.hpp>
 #include <vector>
@@ -34,6 +35,7 @@ using namespace std;
 
 double const PI = 3.14159265358979;
 uniform_real_distribution<double> dist01(0,1);
+
 
 ////////////////////////// Boid class and methods //////////////////////////
 
@@ -86,7 +88,7 @@ Boid::Boid(double x_, double y_, double orientation_)
 }
 
 void placeBoids(vector<Boid> &boids, double boxSizeX, double boxSizeY,
-				default_random_engine &gen)
+                default_random_engine &gen)
 {
 	double vInit = 0.00001;
 	
@@ -739,45 +741,102 @@ void collideWalls(vector<Boid> &boidsOld, vector<Boid> &boidsNew, vector<Wall> w
 	}
 }
 
+/////////////////////// Wall initialisation functions //////////////////////
+
+void addDefaultWalls(vector<Wall> &walls, int boxSizeX, int boxSizeY)
+{
+	// diagonal
+	Wall walld(0.66*boxSizeX,0.66*boxSizeY,0.27*boxSizeX,0.27*boxSizeY);
+	walls.push_back(walld);
+	
+	// cube
+	double sizeCube = 0.06*boxSizeX;
+	double xCube = 0.16*boxSizeX;
+	double yCube = 0.16*boxSizeY;
+	Wall wall0(xCube-sizeCube/2,yCube-sizeCube/2,xCube-sizeCube/2,yCube+sizeCube/2);
+	Wall wall1(xCube-sizeCube/2,yCube+sizeCube/2,xCube+sizeCube/2,yCube+sizeCube/2);
+	Wall wall2(xCube+sizeCube/2,yCube+sizeCube/2,xCube+sizeCube/2,yCube-sizeCube/2);
+	Wall wall3(xCube+sizeCube/2,yCube-sizeCube/2,xCube-sizeCube/2,yCube-sizeCube/2);
+	walls.push_back(wall0);
+	walls.push_back(wall1);
+	walls.push_back(wall2);
+	walls.push_back(wall3);
+}
+
+void addRandomWall(vector<Wall> &walls, int boxSizeX, int boxSizeY,
+                   default_random_engine &gen)
+{
+	double x1 = boxSizeX * dist01(gen);
+	double y1 = boxSizeY * dist01(gen);
+	double x2 = boxSizeX * dist01(gen);
+	double y2 = boxSizeY * dist01(gen);
+	
+	Wall wall(x1,y1,x2,y2);
+	walls.push_back(wall);
+}
+
+void addRandomWallOnSquareGrid(vector<Wall> &walls, int boxSizeX, int boxSizeY,
+                               default_random_engine &gen)
+{
+	int N = 8;
+	uniform_int_distribution<int> dist(0,N);
+	
+	double dx = boxSizeX*1.0/N;
+	double dy = boxSizeY*1.0/N;
+	
+	double x1 = dx * dist(gen);
+	double y1 = dy * dist(gen);
+	double x2 = x1;
+	double y2 = y1;
+	
+	double r = dist01(gen);
+	
+	if (r<0.5)
+	{
+		while (x2==x1) x2 = dx * dist(gen);
+	}
+	else
+	{
+		while (y2==y1) y2 = dy * dist(gen);
+	}
+	
+	Wall wall(x1,y1,x2,y2);
+	walls.push_back(wall);
+}
+
 ////////////////////////////////////////////////////////////////////////////
 
 int main()
 {	
 	////////////////////////////// Randomness //////////////////////////////
-        
-    random_device true_gen;
+	
+	random_device true_gen;
 	int seed = true_gen();
 	cout << "seed = " << seed << endl;
 	default_random_engine gen(seed);
 	
-	//////////////////////////////// World /////////////////////////////////
+	///////////////////////////// Wall placement ///////////////////////////
 	
 	double boxSizeX = 30;
 	double boxSizeY = 30;
 	
-	// box
-	Wall wall0(0,0,0,boxSizeY);
-	Wall wall1(0,boxSizeY,boxSizeX,boxSizeY);
-	Wall wall2(boxSizeX,boxSizeY,boxSizeX,0);
-	Wall wall3(boxSizeX,0,0,0);
-	vector<Wall> walls = {wall0,wall1,wall2,wall3};
+	// construct bounding box
 	
-	// diagonal
-	wall0 = Wall(20,20,8,8);
-	walls.push_back(wall0);
+	Wall wallBorder0(0,0,0,boxSizeY);
+	Wall wallBorder1(0,boxSizeY,boxSizeX,boxSizeY);
+	Wall wallBorder2(boxSizeX,boxSizeY,boxSizeX,0);
+	Wall wallBorder3(boxSizeX,0,0,0);
+	vector<Wall> walls = {wallBorder0,wallBorder1,wallBorder2,wallBorder3};
 	
-	// cube
-	double sizeCube = 2;
-	double xCube = 5;
-	double yCube = 5;
-	wall0 = Wall(xCube-sizeCube/2,yCube-sizeCube/2,xCube-sizeCube/2,yCube+sizeCube/2);
-	wall1 = Wall(xCube-sizeCube/2,yCube+sizeCube/2,xCube+sizeCube/2,yCube+sizeCube/2);
-	wall2 = Wall(xCube+sizeCube/2,yCube+sizeCube/2,xCube+sizeCube/2,yCube-sizeCube/2);
-	wall3 = Wall(xCube+sizeCube/2,yCube-sizeCube/2,xCube-sizeCube/2,yCube-sizeCube/2);
-	walls.push_back(wall0);
-	walls.push_back(wall1);
-	walls.push_back(wall2);
-	walls.push_back(wall3);
+	// randomly place walls
+	
+	poisson_distribution<int> dist(4);
+	double numWalls = dist(gen);
+	
+	for (int i=0; i<numWalls; i++)
+		addRandomWallOnSquareGrid(walls, boxSizeX, boxSizeY, gen);
+	
+	//addDefaultWalls(walls, boxSizeX, boxSizeY);
 	
 	/////////////////////////// Boid placement /////////////////////////////
 	
@@ -801,9 +860,9 @@ int main()
 	int windowSizeX = 640;
 	int windowSizeY = 640;
 	
-    sf::RenderWindow window(sf::VideoMode(windowSizeX,windowSizeY),"Boids");
-    
-    double scaleX = windowSizeX/boxSizeX;
+	sf::RenderWindow window(sf::VideoMode(windowSizeX,windowSizeY),"Boids");
+	
+	double scaleX = windowSizeX/boxSizeX;
 	double scaleY = windowSizeY/boxSizeY;
 	
 	////////////////////////////// Main Loop ///////////////////////////////
@@ -812,108 +871,108 @@ int main()
 	double dt = 0.01;
 	int tSleep = dt*1000;
 	
-    bool pause = false;
-    bool slowdown = false;
-    bool accelerate = false;
-    
-    bool isMouseInWindow = false;
-    double mouseX = 0;
-    double mouseY = 0;
+	bool pause = false;
+	bool slowdown = false;
+	bool accelerate = false;
+	
+	bool isMouseInWindow = false;
+	double mouseX = 0;
+	double mouseY = 0;
 	
 	while (window.isOpen())
-    {
-    	///////////////////////// Event Handling ///////////////////////////
-    	
-    	sf::Event event;
-        while (window.pollEvent(event))
-        {
-            if (event.type == sf::Event::Closed)
-            {
-                window.close();
-            }
-            
-            if (event.type == sf::Event::KeyPressed && 
-            	event.key.code == sf::Keyboard::Space)
-            {
-            	pause = !pause;
-            }
-            
-	        if (event.type == sf::Event::KeyReleased && 
-	        	event.key.code == sf::Keyboard::S)
-	        {
-	            slowdown = !slowdown;
-	        }
-	        
-	        if (event.type == sf::Event::KeyReleased && 
-	        	event.key.code == sf::Keyboard::A)
-	        {
-	            accelerate = !accelerate;
-	        }
-	        
-	        if (event.type == sf::Event::MouseMoved)
-	        {
-	            mouseX = event.mouseMove.x/scaleX;
-	            mouseY = event.mouseMove.y/scaleY;
-	        }
-	        
-	        if (event.type == sf::Event::MouseEntered)
-	        {
-	            isMouseInWindow = true;
-	        }
-	        
-	        if (event.type == sf::Event::MouseLeft)
-	        {
-	            isMouseInWindow = false;
-	        }
-        }
-        
-        if (!pause) 
-        {
-		    //////////////////////////// Timing ////////////////////////////
-		    
-		    if (slowdown)
-		    	this_thread::sleep_for(std::chrono::milliseconds(10*tSleep));
-		    else if (accelerate)
-		    	;// do not slow for rendering
-		    else
-		    	this_thread::sleep_for(std::chrono::milliseconds(tSleep));
-		    
-		    ////////////////////////// Time Step ///////////////////////////
-		    
-		    resetForce(boids);
-		    drivingForce(boids);
-		    drag(boids);
-		    separation(boids);
-		    cohesion(boids);
-		    alignment(boids);
-		    avoidWalls(boids, walls);
-		    //if (isMouseInWindow) mouseWorshipping(boids,walls,mouseX,mouseY);
-		    capForce(boids);
-		    
-		    vector<Boid> boidsOld = boids;
-		    advanceTime(boids,dt);
-		    collideWalls(boidsOld,boids,walls);
-		    orientationWithSpeed(boids);
-		    updateNeighbours(boids, walls);
-		    t += dt;
-		    
-		    /////////////////////////// Rendering //////////////////////////
-		    
-		    window.clear(sf::Color::White);
-		    renderBoidsAsTriangles(window,boids,scaleX,scaleY);
-		    //renderBoidsHighlight(window,boids,scaleX,scaleY,0);
-		    //renderBoidsAsPoints(window,boids,scaleX,scaleY);
-		    //renderForces(window,boids,scaleX,scaleY);
-		    renderWalls(window,walls,scaleX,scaleY);
-		    //if (isMouseInWindow) renderMouse(window,mouseX,mouseY,scaleX,scaleY);
-		    window.display();
-        }
-        else
-        {
-        	// do not use all cpu usage when in pause
-        	this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
-    }
+	{
+		///////////////////////// Event Handling ///////////////////////////
+		
+		sf::Event event;
+		while (window.pollEvent(event))
+		{
+			if (event.type == sf::Event::Closed)
+			{
+				window.close();
+			}
+			
+			if (event.type == sf::Event::KeyPressed && 
+				event.key.code == sf::Keyboard::Space)
+			{
+				pause = !pause;
+			}
+			
+			if (event.type == sf::Event::KeyReleased && 
+				event.key.code == sf::Keyboard::S)
+			{
+				slowdown = !slowdown;
+			}
+			
+			if (event.type == sf::Event::KeyReleased && 
+				event.key.code == sf::Keyboard::A)
+			{
+				accelerate = !accelerate;
+			}
+			
+			if (event.type == sf::Event::MouseMoved)
+			{
+				mouseX = event.mouseMove.x/scaleX;
+				mouseY = event.mouseMove.y/scaleY;
+			}
+			
+			if (event.type == sf::Event::MouseEntered)
+			{
+				isMouseInWindow = true;
+			}
+			
+			if (event.type == sf::Event::MouseLeft)
+			{
+				isMouseInWindow = false;
+			}
+		}
+		
+		if (!pause) 
+		{
+			//////////////////////////// Timing ////////////////////////////
+			
+			if (slowdown)
+				this_thread::sleep_for(std::chrono::milliseconds(10*tSleep));
+			else if (accelerate)
+				;// do not slow for rendering
+			else
+				this_thread::sleep_for(std::chrono::milliseconds(tSleep));
+			
+			////////////////////////// Time Step ///////////////////////////
+			
+			resetForce(boids);
+			drivingForce(boids);
+			drag(boids);
+			separation(boids);
+			cohesion(boids);
+			alignment(boids);
+			avoidWalls(boids, walls);
+			//if (isMouseInWindow) mouseWorshipping(boids,walls,mouseX,mouseY);
+			capForce(boids);
+			
+			vector<Boid> boidsOld = boids;
+			advanceTime(boids,dt);
+			collideWalls(boidsOld,boids,walls);
+			orientationWithSpeed(boids);
+			updateNeighbours(boids, walls);
+			t += dt;
+			
+			/////////////////////////// Rendering //////////////////////////
+			
+			window.clear(sf::Color::White);
+			renderBoidsAsTriangles(window,boids,scaleX,scaleY);
+			//renderBoidsHighlight(window,boids,scaleX,scaleY,0);
+			//renderBoidsAsPoints(window,boids,scaleX,scaleY);
+			//renderForces(window,boids,scaleX,scaleY);
+			renderWalls(window,walls,scaleX,scaleY);
+			//if (isMouseInWindow) renderMouse(window,mouseX,mouseY,scaleX,scaleY);
+			window.display();
+		}
+		else
+		{
+			// do not use all cpu usage when in pause
+			this_thread::sleep_for(std::chrono::milliseconds(100));
+		}
+	}
 	
 	return 0;
 }
