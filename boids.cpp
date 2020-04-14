@@ -9,18 +9,16 @@
 //    Compile with $ g++ -o boids boids.cpp \                             //
 //                   -lsfml-graphics -lsfml-window -lsfml-system          //
 //                                                                        //
+//    Usage: ./boids --<option name>=<option value>                       //
+//    Execute "./boids --help" for more details on the program usage      //
+//                                                                        //
 ////////////////////////////////////////////////////////////////////////////
 
-// Suggestions: 
-
-// Perlin noise for randomness or deviate for a given time
-// (random walk giving the deviation force) (collective or individual?)
-// (follow randomly placed target)
+// Suggestions for updates: 
 
 // Bigger box and partial view following the boids (see DLA rendering code)
-
 // Optimisation for better performance (the code has never been optimised)
-	
+
 ////////////////////////////////////////////////////////////////////////////	    
 
 
@@ -806,12 +804,58 @@ void addRandomWallOnSquareGrid(vector<Wall> &walls, int boxSizeX, int boxSizeY,
 
 ////////////////////////////////////////////////////////////////////////////
 
-int main()
-{	
+int main(int argc, char **argv)
+{
+	/////////////////////////////// Version ////////////////////////////////
+	
+	string versionCode = "1.2.0";
+	
+	for (int i=0; i<argc; i++) if (string(argv[i]).substr(0,9)=="--version")
+	{
+		cout << "Boids simulation, version " << versionCode << endl;
+		cout << endl;
+		
+		return 0;
+	}
+	
+	//////////////////////////////// Help //////////////////////////////////
+	
+	for (int i=0; i<argc; i++) if (string(argv[i]).substr(0,6)=="--help")
+	{
+		cout << "Usage: ./boids --<option name>=<option value>" << endl;
+		cout << endl;
+		cout << "Options:  <option name>   <option value>   <description>                " << endl;
+		cout << "          version         -                version of the program       " << endl;
+		cout << "          help            -                help for usage               " << endl;
+		cout << "          seed            int              seed for random generation   " << endl;
+		cout << "          avgWalls        double           average number of walls      " << endl;
+		cout << "          nBoids          int              number of boids              " << endl;
+		cout << "          boxSizeX        double           size of the box              " << endl;
+		cout << "          boxSizeY        double           size of the box              " << endl;
+		cout << "          windowSizeX     int              size of the window           " << endl;
+		cout << "          windowSizeY     int              size of the window           " << endl;
+		cout << endl;
+		cout << "Controls:   Press Space to pause the simulation   " << endl;
+		cout << "            Press S to slow down the simulation   " << endl;
+		cout << "            Press A to accelerate the simulation  " << endl;
+		cout << endl;
+		
+		return 0;
+	}
+	
 	////////////////////////////// Randomness //////////////////////////////
 	
 	random_device true_gen;
 	int seed = true_gen();
+	
+	// try to use a specified seed if given in arguments
+	for (int i=0; i<argc; i++) if (string(argv[i]).substr(0,7)=="--seed=")
+	{
+		string arg = argv[i];
+		try {seed = stoi(arg.substr(7,arg.size()-7));}
+		catch (...) {cout << "Error reading seed option: " << arg << endl;}
+	}
+	
 	cout << "seed = " << seed << endl;
 	default_random_engine gen(seed);
 	
@@ -819,6 +863,20 @@ int main()
 	
 	double boxSizeX = 30;
 	double boxSizeY = 30;
+	
+	// try to use a specified box size if given in arguments
+	for (int i=0; i<argc; i++) if (string(argv[i]).substr(0,11)=="--boxSizeX=")
+	{
+		string arg = argv[i];
+		try {boxSizeX = stod(arg.substr(11,arg.size()-11));}
+		catch (...) {cout << "Error reading boxSizeX option: " << arg << endl;}
+	}
+	for (int i=0; i<argc; i++) if (string(argv[i]).substr(0,11)=="--boxSizeY=")
+	{
+		string arg = argv[i];
+		try {boxSizeY = stod(arg.substr(11,arg.size()-11));}
+		catch (...) {cout << "Error reading boxSizeX option: " << arg << endl;}
+	}
 	
 	// construct bounding box
 	
@@ -828,10 +886,19 @@ int main()
 	Wall wallBorder3(boxSizeX,0,0,0);
 	vector<Wall> walls = {wallBorder0,wallBorder1,wallBorder2,wallBorder3};
 	
+	// try to use a specified average number walls if given in arguments
+	double avgWalls = 4;
+	for (int i=0; i<argc; i++) if (string(argv[i]).substr(0,11)=="--avgWalls=")
+	{
+		string arg = argv[i];
+		try {avgWalls = stod(arg.substr(11,arg.size()-11));}
+		catch (...) {cout << "Error reading avgWalls option: " << arg << endl;}
+	}
+	
 	// randomly place walls
 	
-	poisson_distribution<int> dist(4);
-	double numWalls = dist(gen);
+	poisson_distribution<int> dist(avgWalls);
+	int numWalls = dist(gen);
 	
 	for (int i=0; i<numWalls; i++)
 		addRandomWallOnSquareGrid(walls, boxSizeX, boxSizeY, gen);
@@ -840,8 +907,17 @@ int main()
 	
 	/////////////////////////// Boid placement /////////////////////////////
 	
+	// try to use a specified number of boids if given in arguments
+	int nBoids = 30;
+	for (int i=0; i<argc; i++) if (string(argv[i]).substr(0,9)=="--nBoids=")
+	{
+		string arg = argv[i];
+		try {nBoids = stoi(arg.substr(9,arg.size()-9));}
+		catch (...) {cout << "Error reading nBoids option: " << arg << endl;}
+	}
+	
 	Boid boid(0,0,0);
-	vector<Boid> boids(30,boid);
+	vector<Boid> boids(nBoids,boid);
 	
 	// special boid
 	//boids[0].a = 1;
@@ -859,6 +935,20 @@ int main()
 	
 	int windowSizeX = 640;
 	int windowSizeY = 640;
+	
+	// try to use a specified window size if given in arguments
+	for (int i=0; i<argc; i++) if (string(argv[i]).substr(0,14)=="--windowSizeX=")
+	{
+		string arg = argv[i];
+		try {windowSizeX = stoi(arg.substr(14,arg.size()-14));}
+		catch (...) {cout << "Error reading windowSizeX option: " << arg << endl;}
+	}
+	for (int i=0; i<argc; i++) if (string(argv[i]).substr(0,14)=="--windowSizeY=")
+	{
+		string arg = argv[i];
+		try {windowSizeY = stoi(arg.substr(14,arg.size()-14));}
+		catch (...) {cout << "Error reading windowSizeY option: " << arg << endl;}
+	}
 	
 	sf::RenderWindow window(sf::VideoMode(windowSizeX,windowSizeY),"Boids");
 	
