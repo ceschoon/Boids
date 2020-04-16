@@ -6,7 +6,7 @@
 //    September 2019, April 2020                                          //
 //                                                                        //
 //    Developped under Ubuntu 18.04 with g++ 7.4.0 and sfml 2.4           //
-//    Compile with $ g++ -o boids boids.cpp \                             //
+//    Compile with $ g++ -O3 -o boids boids.cpp \                         //
 //                   -lsfml-graphics -lsfml-window -lsfml-system          //
 //                                                                        //
 //    Usage: ./boids --<option name>=<option value>                       //
@@ -14,10 +14,43 @@
 //                                                                        //
 ////////////////////////////////////////////////////////////////////////////
 
+
+
 // Suggestions for updates: 
 
 // Bigger box and partial view following the boids (see DLA rendering code)
 // Optimisation for better performance (the code has never been optimised)
+// Seperate files as the code becomes a bit large
+// New classes that inherits the basic Boid but for other parameters
+// --> Flies with 180 view angle and 0 alignement
+// --> Try bird in V-shape ??
+// Distinguish physical forces and behavioural forces 
+// --> Two different vectors, with different caps
+// --> Convert all behavioural forces to orientation forces or acceleration
+// Ecosystem of boids with prey-predator relationships ??
+// Reaction time for boids
+// --> Implementation with a delay in the neighbour list updates
+// --> This way, we can update the neighbour list at a slower rate than the
+//     integration, thus saving computational power
+// --> Two neighbour lists (physical and behavioural ones?),
+//     the physical list can be associated with a fixed, smaller range
+// Better wall avoidance (try seperation force in 1/r^2, in addition)
+// Boid cohesion only with neighbours in sight (orientation force instead?)
+
+
+// TODO (urgent fixes):
+
+
+
+// File structure (to come):
+
+// boids.cpp                Simulation main file, options 
+// Boid.h, ~.cpp            Boid classes and subclasses, AI and
+//                          behavioural interaction
+// Physics.h ~.cpp          Walls & Rays classes, physical interactions, 
+//                          physical neigh. lists??
+// Rendering.h, ~.cpp       Rendering functions
+
 
 ////////////////////////////////////////////////////////////////////////////	    
 
@@ -71,17 +104,17 @@ Boid::Boid(double x_, double y_, double orientation_)
 	fy = 0;
 	orientation = orientation_;
 	
-	a = 1;
-	b = 1;
-	s = 1.0/180*100; // phase transition between 30 and 50 (a=b=1, f=100, c=10, range=5) for 30 boids (depend on the number of boids)
-	f = 100;
-	c = 10;
-	m = 30;
-	w = 1.0/180*300;
+	a = 20;              // default = 20
+	b = 10;              // default = 10
+	s = 1.0/180*100;     // default = 1.0/180*100
+	f = 100;             // default = 100
+	c = 10;              // default = 10
+	m = 30;              // default = 30
+	w = 1.0/180*300;     // default = 1.0/180*300
 	
-	range = 10;
-	obstacleRange = 5;
-	viewAngle = 120;
+	range = 10;          // default = 10
+	obstacleRange = 5;   // default = 5
+	viewAngle = 120;     // default = 120
 	neighbours = {};
 }
 
@@ -404,8 +437,8 @@ void renderForces(sf::RenderWindow &window, vector<Boid> boids, double scaleX, d
 
 void renderWalls(sf::RenderWindow &window, vector<Wall> walls, double scaleX, double scaleY)
 {
-    sf::RectangleShape line(sf::Vector2f(1, 0.06));
-	line.setOrigin(0,0.03);
+    sf::RectangleShape line(sf::Vector2f(1, 0.05));
+	line.setOrigin(0,0.025);
     line.setFillColor(sf::Color::Black);
 
     for (int i=0; i<walls.size(); i++)
@@ -482,8 +515,6 @@ void separation(vector<Boid> &boids)
 			double r = distance(x1,y1,x2,y2);
 			double angle12 = angle(x2,y2,x1,y1);
 			
-			r -= 0.5;  // shift for more separation
-			
 			// no test for r<range as it is done in the neighbour list
 			double F = boids[i].a/(r*r);
 			boids[i].fx += F*cos(angle12*PI/180);
@@ -497,23 +528,32 @@ void cohesion(vector<Boid> &boids)
 	for (int i=0; i<boids.size(); i++)
 	{
 		vector<int> neighbours = boids[i].neighbours;
+		if (neighbours.size() == 0) continue; 
 		
 		double x1 = boids[i].x;
 		double y1 = boids[i].y;
-			
+		
+		// gravity center of neighbour boids
+		double x2 = 0;
+		double y2 = 0;
+		
 		for (int j=0; j<neighbours.size(); j++)
 		{
-			double x2 = boids[neighbours[j]].x;
-			double y2 = boids[neighbours[j]].y;
-			double r = distance(x1,y1,x2,y2);
-			double angle12 = angle(x2,y2,x1,y1);
+			double x3 = boids[neighbours[j]].x;
+			double y3 = boids[neighbours[j]].y;
 			
-			// no test for r<range as it is done in the neighbour list
-			double F = -boids[i].b*r;
-			//F = min(F,-boids[i].b*4); // artificial limitation on magnitude  
-			boids[i].fx += F*cos(angle12*PI/180);
-			boids[i].fy += F*sin(angle12*PI/180);	
+			x2 += x3/neighbours.size();
+			y2 += y3/neighbours.size();
 		}
+		
+		double r = distance(x1,y1,x2,y2);
+		double angle12 = angle(x2,y2,x1,y1);
+		
+		// no test for r<range as it is done in the neighbour list
+		double F = -boids[i].b*r;
+		
+		boids[i].fx += F*cos(angle12*PI/180);
+		boids[i].fy += F*sin(angle12*PI/180);
 	}
 }
 
@@ -648,17 +688,17 @@ void mouseWorshipping(vector<Boid> &boids, vector<Wall> walls, double mouseX, do
 }
 
 void capForce(vector<Boid> &boids)
-{	
+{
 	for (int i=0; i<boids.size(); i++)
 	{
 		double F = sqrt(boids[i].fx*boids[i].fx+boids[i].fy*boids[i].fy);
-    	double angleF = angle(0,0,boids[i].fx,boids[i].fy);
-    	
-    	if (F>100) 
-    	{
-    		boids[i].fx = 100*cos(angleF*PI/180);
-    		boids[i].fy = 100*sin(angleF*PI/180);
-    	}
+		double angleF = angle(0,0,boids[i].fx,boids[i].fy);
+		
+		if (F>100) 
+		{
+			boids[i].fx = 100*cos(angleF*PI/180);
+			boids[i].fy = 100*sin(angleF*PI/180);
+		}
 	}
 }
 
@@ -741,26 +781,6 @@ void collideWalls(vector<Boid> &boidsOld, vector<Boid> &boidsNew, vector<Wall> w
 
 /////////////////////// Wall initialisation functions //////////////////////
 
-void addDefaultWalls(vector<Wall> &walls, int boxSizeX, int boxSizeY)
-{
-	// diagonal
-	Wall walld(0.66*boxSizeX,0.66*boxSizeY,0.27*boxSizeX,0.27*boxSizeY);
-	walls.push_back(walld);
-	
-	// cube
-	double sizeCube = 0.06*boxSizeX;
-	double xCube = 0.16*boxSizeX;
-	double yCube = 0.16*boxSizeY;
-	Wall wall0(xCube-sizeCube/2,yCube-sizeCube/2,xCube-sizeCube/2,yCube+sizeCube/2);
-	Wall wall1(xCube-sizeCube/2,yCube+sizeCube/2,xCube+sizeCube/2,yCube+sizeCube/2);
-	Wall wall2(xCube+sizeCube/2,yCube+sizeCube/2,xCube+sizeCube/2,yCube-sizeCube/2);
-	Wall wall3(xCube+sizeCube/2,yCube-sizeCube/2,xCube-sizeCube/2,yCube-sizeCube/2);
-	walls.push_back(wall0);
-	walls.push_back(wall1);
-	walls.push_back(wall2);
-	walls.push_back(wall3);
-}
-
 void addRandomWall(vector<Wall> &walls, int boxSizeX, int boxSizeY,
                    default_random_engine &gen)
 {
@@ -776,14 +796,21 @@ void addRandomWall(vector<Wall> &walls, int boxSizeX, int boxSizeY,
 void addRandomWallOnSquareGrid(vector<Wall> &walls, int boxSizeX, int boxSizeY,
                                default_random_engine &gen)
 {
-	int N = 8;
-	uniform_int_distribution<int> dist(0,N);
+	// subdivide the box in a Nx by Ny grid of smaller boxes
+	// choose Nx,Ny such as the small boxes have a side length of about 5
+	// we then place a wall randomly on the edges of this grid
 	
-	double dx = boxSizeX*1.0/N;
-	double dy = boxSizeY*1.0/N;
+	int Nx = int (boxSizeX/5.0);
+	int Ny = int (boxSizeY/5.0);
 	
-	double x1 = dx * dist(gen);
-	double y1 = dy * dist(gen);
+	uniform_int_distribution<int> distX(0,Nx);
+	uniform_int_distribution<int> distY(0,Ny);
+	
+	double dx = boxSizeX*1.0/Nx;
+	double dy = boxSizeY*1.0/Ny;
+	
+	double x1 = dx * distX(gen);
+	double y1 = dy * distY(gen);
 	double x2 = x1;
 	double y2 = y1;
 	
@@ -791,11 +818,11 @@ void addRandomWallOnSquareGrid(vector<Wall> &walls, int boxSizeX, int boxSizeY,
 	
 	if (r<0.5)
 	{
-		while (x2==x1) x2 = dx * dist(gen);
+		while (x2==x1) x2 = dx * distX(gen);
 	}
 	else
 	{
-		while (y2==y1) y2 = dy * dist(gen);
+		while (y2==y1) y2 = dy * distY(gen);
 	}
 	
 	Wall wall(x1,y1,x2,y2);
@@ -808,7 +835,7 @@ int main(int argc, char **argv)
 {
 	/////////////////////////////// Version ////////////////////////////////
 	
-	string versionCode = "1.2.0";
+	string versionCode = "1.2.1";
 	
 	for (int i=0; i<argc; i++) if (string(argv[i]).substr(0,9)=="--version")
 	{
@@ -903,8 +930,6 @@ int main(int argc, char **argv)
 	for (int i=0; i<numWalls; i++)
 		addRandomWallOnSquareGrid(walls, boxSizeX, boxSizeY, gen);
 	
-	//addDefaultWalls(walls, boxSizeX, boxSizeY);
-	
 	/////////////////////////// Boid placement /////////////////////////////
 	
 	// try to use a specified number of boids if given in arguments
@@ -933,8 +958,8 @@ int main(int argc, char **argv)
 	
 	/////////////////////////////// Window /////////////////////////////////
 	
-	int windowSizeX = 640;
-	int windowSizeY = 640;
+	int windowSizeX = 600;
+	int windowSizeY = 600;
 	
 	// try to use a specified window size if given in arguments
 	for (int i=0; i<argc; i++) if (string(argv[i]).substr(0,14)=="--windowSizeX=")
