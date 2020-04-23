@@ -70,3 +70,13 @@ double angleDifference(double angle1, double angle2)
 	return angleDiff;
 }
 
+
+
+
+double sigmoid(double x)
+{
+	return tanh(x);
+}
+
+
+

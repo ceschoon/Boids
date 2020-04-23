@@ -40,4 +40,7 @@ double angle360(double angle);
 double angleDifference(double angle1, double angle2);
 
 
+double sigmoid(double x);
+
+
 #endif // MATH_H

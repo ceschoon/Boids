@@ -256,7 +256,7 @@ void collideWalls(vector<Boid> &boidsOld, vector<Boid> &boidsNew, vector<Wall> w
 
 //////////////////////////////// Forces ////////////////////////////////////
 
-
+/*
 void resetForce(vector<Boid> &boids)
 {
 	for (int i=0; i<boids.size(); i++)
@@ -440,45 +440,6 @@ void avoidWalls(vector<Boid> &boids, vector<Wall> walls)
 			
 			boids[i].fx += F*cos(orientation*PI/180+PI/2);
 			boids[i].fy += F*sin(orientation*PI/180+PI/2);
-			
-			//boids[i].orientation += 180;
-		}
-	}
-}
-
-void mouseWorshipping(vector<Boid> &boids, vector<Wall> walls, double mouseX, double mouseY)
-{
-	for (int i=0; i<boids.size(); i++)
-	{			
-		// distance condition
-		double d = distance(boids[i].x,boids[i].y,mouseX,mouseY);
-		
-		// visibility condition (angle)
-		double angleMouse = angle(boids[i].x,boids[i].y,mouseX,mouseY);
-		
-		// visibility condition (no wall)
-		bool viewObstructed = false;
-		Ray ray(boids[i].x,boids[i].y,angleMouse);
-		
-		for (int k=0; k<walls.size(); k++)
-		{
-			bool exists;
-			double xInt,yInt;
-			intersection(ray,walls[k],xInt,yInt,exists);
-			if (exists && distance(boids[i].x,boids[i].y,xInt,yInt)
-				<distance(boids[i].x,boids[i].y,mouseX,mouseY)) 
-			{
-				viewObstructed = true;
-				break;
-			}
-		}
-		
-		if (d < boids[i].range && 
-			abs(angleDifference(angleMouse,boids[i].orientation))<boids[i].viewAngle &&
-			!viewObstructed)
-		{
-			boids[i].fx += boids[i].m*cos(angleMouse*PI/180);
-			boids[i].fy += boids[i].m*sin(angleMouse*PI/180);
 		}
 	}
 }
@@ -490,7 +451,7 @@ void capForce(vector<Boid> &boids)
 		double F = sqrt(boids[i].fx*boids[i].fx+boids[i].fy*boids[i].fy);
 		double angleF = angle(0,0,boids[i].fx,boids[i].fy);
 		
-		double Fcap = 100; // default 100
+		double Fcap = 500; // default 500
 		if (F>Fcap) 
 		{
 			boids[i].fx = Fcap*cos(angleF*PI/180);
@@ -498,7 +459,7 @@ void capForce(vector<Boid> &boids)
 		}
 	}
 }
-
+*/
 
 
 
@@ -556,7 +517,7 @@ void updateNeighbours(vector<Boid> &boids, vector<Wall> walls)
 					}
 				}
 				
-				if (d < boids[i].range && 
+				if (d < boids[i].viewRange && 
 					abs(angleDifference(angleij,boids[i].orientation))<boids[i].viewAngle &&
 					!viewObstructed)
 				{

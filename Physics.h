@@ -82,20 +82,6 @@ void orientationWithSpeed(vector<Boid> &boids);
 void collideWalls(vector<Boid> &boidsOld, vector<Boid> &boidsNew, vector<Wall> walls);
 
 
-//////////////////////////////// Forces ////////////////////////////////////
-
-
-void resetForce(vector<Boid> &boids);
-void drivingForce(vector<Boid> &boids);
-void drag(vector<Boid> &boids);
-void separation(vector<Boid> &boids);
-void cohesion(vector<Boid> &boids);
-void alignment(vector<Boid> &boids);
-void avoidWalls(vector<Boid> &boids, vector<Wall> walls);
-void mouseWorshipping(vector<Boid> &boids, vector<Wall> walls, double mouseX, double mouseY);
-void capForce(vector<Boid> &boids);
-
-
 /////////////////////// Neighbour tests and updates ////////////////////////
 
 

@@ -35,7 +35,9 @@
 // --> Two neighbour lists (physical and behavioural ones?),
 //     the physical list can be associated with a fixed, smaller range
 // Better wall avoidance (try seperation force in 1/r^2, in addition)
+//                       (also the current behavioural one with rays is bad)
 // Boid cohesion only with neighbours in sight (orientation force instead?)
+// Remove orientation state variable --> member function instead for speed angle
 
 
 // TODO (urgent fixes):
@@ -68,7 +70,7 @@
 using namespace std;
 
 
-
+void info(Boid boid);
 
 
 int main(int argc, char **argv)
@@ -294,15 +296,22 @@ int main(int argc, char **argv)
 			
 			////////////////////////// Time Step ///////////////////////////
 			
-			resetForce(boids);
-			drivingForce(boids);
-			drag(boids);
-			separation(boids);
-			cohesion(boids);
-			alignment(boids);
-			avoidWalls(boids, walls);
-			//if (isMouseInWindow) mouseWorshipping(boids,walls,mouseX,mouseY);
-			//capForce(boids);
+			//resetForce(boids);
+			//drivingForce(boids);
+			//drag(boids);
+			//separation(boids);
+			//cohesion(boids);
+			//alignment(boids);
+			//avoidWalls(boids, walls);
+			
+			for (int i=0; i<boids.size(); i++)
+			{
+				boids[i].resetForce();
+				boids[i].computePhysicalForces(boids, walls);
+				boids[i].computeBehaviouralForces(boids, walls);
+			}
+			
+			info(boids[0]);
 			
 			vector<Boid> boidsOld = boids;
 			advanceTime(boids,dt);
@@ -331,3 +340,18 @@ int main(int argc, char **argv)
 	
 	return 0;
 }
+
+
+
+
+void info(Boid boid)
+{
+	double v2 = boid.vx*boid.vx + boid.vy*boid.vy;
+	double f2 = boid.fx*boid.fx + boid.fy*boid.fy;
+	
+	cout << "|v| = " << sqrt(v2) << " "
+	     << "|f| = " << sqrt(f2) << " "
+	     << endl;
+}
+
+
