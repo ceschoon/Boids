@@ -1,12 +1,43 @@
-#include <math>
-#include <random>
+#include <cmath>
+#include <exception>
 
 #include "NeuralNetwork.h"
 
 
 
+// distributions for rng
+uniform_real_distribution<double> dist01(0,1);
+normal_distribution<double> distNorm(0,1);
+
+
+
 // define type of sigmoid function used
 double sigmoid(double x) {return tanh(x);}
+
+
+
+void NeuralNetwork::initRandom()
+{
+	// init weights
+	for (int i=0; i<w_.size(); i++) w_[i] = distNorm(gen_);
+	
+	// init biases
+	for (int i=0; i<b_.size(); i++) b_[i] = distNorm(gen_);
+}
+
+
+
+void NeuralNetwork::perturbWeights(double mean, double std)
+{
+	for (int i=0; i<w_.size(); i++) w_[i] += distNorm(gen_)*std + mean;
+}
+
+
+
+void NeuralNetwork::perturbBiases(double mean, double std)
+{
+	for (int i=0; i<b_.size(); i++) b_[i] += distNorm(gen_)*std + mean;
+}
 
 
 
@@ -69,21 +100,21 @@ vector<double> NeuralNetwork::eval(vector<double> sensors)
 double NeuralNetwork::getWeight(int il, int i1, int i2) 
 {
 	// test for misuse
-	if (il<0 || il>Nl_) throw std::out_of_range;
+	if (il<0 || il>Nl_) throw std::out_of_range("Wrong index in getWeight");
 	if (il==0)
 	{
-		if (i1<0 || i1>=Np_) throw std::out_of_range;
-		if (i2<0 || i2>=Ns_) throw std::out_of_range;
+		if (i1<0 || i1>=Np_) throw std::out_of_range("Wrong index in getWeight");
+		if (i2<0 || i2>=Ns_) throw std::out_of_range("Wrong index in getWeight");
 	}
 	else if (il<Nl_)
 	{
-		if (i1<0 || i1>=Np_) throw std::out_of_range;
-		if (i2<0 || i2>=Np_) throw std::out_of_range;
+		if (i1<0 || i1>=Np_) throw std::out_of_range("Wrong index in getWeight");
+		if (i2<0 || i2>=Np_) throw std::out_of_range("Wrong index in getWeight");
 	}
 	else
 	{
-		if (i1<0 || i1>=No_) throw std::out_of_range;
-		if (i2<0 || i2>=Np_) throw std::out_of_range;
+		if (i1<0 || i1>=No_) throw std::out_of_range("Wrong index in getWeight");
+		if (i2<0 || i2>=Np_) throw std::out_of_range("Wrong index in getWeight");
 	}
 	
 	// return weight
@@ -97,14 +128,14 @@ double NeuralNetwork::getWeight(int il, int i1, int i2)
 double NeuralNetwork::getBias(int il, int i)
 {
 	// test for misuse
-	if (il<0 || il>Nl_) throw std::out_of_range;
+	if (il<0 || il>Nl_) throw std::out_of_range("Wrong index in getBias");
 	if (il<Nl_)
 	{
-		if (i<0 || i>=Np_) throw std::out_of_range;
+		if (i<0 || i>=Np_) throw std::out_of_range("Wrong index in getBias");
 	}
 	else
 	{
-		if (i<0 || i>=No_) throw std::out_of_range;
+		if (i<0 || i>=No_) throw std::out_of_range("Wrong index in getBias");
 	}
 	
 	// return weight

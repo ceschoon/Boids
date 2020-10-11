@@ -1,10 +1,10 @@
-#ifndef NeuralNetwork
-#define NeuralNetwork
+#ifndef NeuralNetwork_H
+#define NeuralNetwork_H
 
 
 #include <iostream>
-#include <exception>
 #include <vector>
+#include <random>
 
 
 using namespace std;
@@ -14,7 +14,7 @@ class NeuralNetwork
 {
 	public:
 		
-		NeuralNetwork(int Ns=5, int Nl=2, int Np=5)
+		NeuralNetwork(int Ns=5, int Nl=2, int Np=5, int seed=-1)
 		: Ns_(Ns), Nl_(Nl), Np_(Np)
 		{
 			// construct default weights and biases
@@ -24,25 +24,39 @@ class NeuralNetwork
 			
 			w_ = vector<double>(Nweights,0);
 			b_ = vector<double>(Nbiases,0);
+			
+			// random number generation
+			
+			if (seed<0)
+			{
+				random_device true_gen;
+				seed = true_gen();
+			}
+			
+			cout << endl;
+			cout << "seed = " << seed << endl;
+			
+			gen_ = default_random_engine(seed);
 		}
 		
 		~NeuralNetwork() {;}
 		
-		// TODO: implementations
 		void initRandom();
-		void perturb(); // take avg shift and std deviation ?
+		
+		void perturbWeights(double mean, double std);
+		void perturbBiases(double mean, double std);
 		
 		vector<double> eval(vector<double> sensors);
 		
-		int getNumSensors() {return Ns_};
-		int getNumLayers() {return Nl_};
-		int getNumNeuronsPerLayer() {return Np_};
+		int getNumSensors() {return Ns_;}
+		int getNumLayers() {return Nl_;}
+		int getNumNeuronsPerLayer() {return Np_;}
 		
 		double getWeight(int il, int i1, int i2);
 		double getBias(int il, int i);
 		
-		vector<double> getAllWeights() {return w_};
-		vector<double> getAllBiases() {return b_};
+		vector<double> getAllWeights() {return w_;}
+		vector<double> getAllBiases() {return b_;}
 		
 	protected:
 		
@@ -53,8 +67,11 @@ class NeuralNetwork
 		
 		vector<double> w_; // weights
 		vector<double> b_; // biases
+		
+		// random number generator
+		default_random_engine gen_;
 };
 
 
-#endif //NeuralNetwork
+#endif //NeuralNetwork_H
 
