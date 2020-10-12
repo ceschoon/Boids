@@ -10,6 +10,7 @@
 using namespace std;
 
 
+
 class NeuralNetwork
 {
 	public:
@@ -68,8 +69,11 @@ class NeuralNetwork
 		vector<double> w_; // weights
 		vector<double> b_; // biases
 		
-		// random number generator
+		// random number generation
 		default_random_engine gen_;
+		
+		// define type of sigmoid function used
+		double sigmoid(double x) {return tanh(x);}
 };
 
 

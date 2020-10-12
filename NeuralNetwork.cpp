@@ -5,19 +5,12 @@
 
 
 
-// distributions for rng
-uniform_real_distribution<double> dist01(0,1);
-normal_distribution<double> distNorm(0,1);
-
-
-
-// define type of sigmoid function used
-double sigmoid(double x) {return tanh(x);}
-
-
 
 void NeuralNetwork::initRandom()
 {
+	// distribution
+	normal_distribution<double> distNorm(0,1);
+	
 	// init weights
 	for (int i=0; i<w_.size(); i++) w_[i] = distNorm(gen_);
 	
@@ -29,6 +22,9 @@ void NeuralNetwork::initRandom()
 
 void NeuralNetwork::perturbWeights(double mean, double std)
 {
+	// distribution
+	normal_distribution<double> distNorm(0,1);
+	
 	for (int i=0; i<w_.size(); i++) w_[i] += distNorm(gen_)*std + mean;
 }
 
@@ -36,6 +32,9 @@ void NeuralNetwork::perturbWeights(double mean, double std)
 
 void NeuralNetwork::perturbBiases(double mean, double std)
 {
+	// distribution
+	normal_distribution<double> distNorm(0,1);
+	
 	for (int i=0; i<b_.size(); i++) b_[i] += distNorm(gen_)*std + mean;
 }
 

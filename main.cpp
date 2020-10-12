@@ -11,7 +11,9 @@
 #include <cmath>
 
 #include "NeuralNetwork.h"
-#include "rendering.h"
+#include "Boid.h"
+#include "Physics.h"
+#include "Rendering.h"
 
 using namespace std;
 
