@@ -10,6 +10,9 @@
 ////////////////////////////////////////////////////////////////////////////
 
 
+// TODO: put all the physics inside the world class
+
+
 #ifndef PHYSICS_H
 #define PHYSICS_H
 
@@ -20,6 +23,24 @@
 
 using namespace std;
 
+
+class Wall;
+class Ray;
+
+
+/////////////////////////////// World class ////////////////////////////////
+
+
+class World
+{
+	public:
+		World(double sizeX, double sizeY)
+		: sizeX_(sizeX), sizeY_(sizeY) {;}
+	
+	protected:
+		double sizeX_;
+		double sizeY_;
+};
 
 
 ////////////////////////// Wall and Ray classes ////////////////////////////
@@ -60,6 +81,20 @@ class Ray
 
 
 void intersection(Ray ray, Wall wall, double &xInt, double &yInt, bool &exists);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ////////////////////////////// Initialisation //////////////////////////////
