@@ -18,6 +18,9 @@
 
 #include <vector>
 #include <random>
+
+#include <SFML/Graphics.hpp>
+
 #include "Math.h"
 #include "Boid.h"
 
@@ -34,12 +37,15 @@ class Ray;
 class World
 {
 	public:
-		World(double sizeX, double sizeY)
-		: sizeX_(sizeX), sizeY_(sizeY) {;}
+		World(double sizeX, double sizeY);
+		
+		void render(sf::RenderWindow &window);
 	
 	protected:
 		double sizeX_;
 		double sizeY_;
+		
+		vector<Wall> walls_;
 };
 
 

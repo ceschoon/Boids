@@ -12,10 +12,28 @@
 
 #include <iostream>
 #include "Physics.h"
+#include "Rendering.h"
 
 using namespace std;
 
 
+////////////////////////////// World const /////////////////////////////////
+
+World::World(double sizeX, double sizeY)
+: sizeX_(sizeX), sizeY_(sizeY)
+{
+	// Put walls on the box sides
+	
+	Wall wallBorder0(0,0,0,sizeY_);
+	Wall wallBorder1(0,sizeY_,sizeX_,sizeY_);
+	Wall wallBorder2(sizeX_,sizeY_,sizeX_,0);
+	Wall wallBorder3(sizeX_,0,0,0);
+	
+	walls_.push_back(wallBorder0);
+	walls_.push_back(wallBorder1);
+	walls_.push_back(wallBorder2);
+	walls_.push_back(wallBorder3);
+}
 
 ////////////////////////// Wall - Ray mechanics ////////////////////////////
 
