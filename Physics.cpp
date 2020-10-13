@@ -17,7 +17,7 @@
 using namespace std;
 
 
-////////////////////////////// World const /////////////////////////////////
+///////////////////////////////// World ////////////////////////////////////
 
 World::World(double sizeX, double sizeY)
 : sizeX_(sizeX), sizeY_(sizeY)
@@ -33,6 +33,19 @@ World::World(double sizeX, double sizeY)
 	walls_.push_back(wallBorder1);
 	walls_.push_back(wallBorder2);
 	walls_.push_back(wallBorder3);
+}
+
+
+//////////////////////// World rendering (call) ////////////////////////////
+
+void World::render(sf::RenderWindow &window)
+{
+	double scaleX = window.getSize().x/sizeX_;
+	double scaleY = window.getSize().y/sizeY_;
+	
+	// TODO: call render functions from "Rendering.h"
+	
+	renderWalls(window, walls_, scaleX, scaleY);
 }
 
 ////////////////////////// Wall - Ray mechanics ////////////////////////////
