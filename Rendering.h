@@ -17,11 +17,9 @@
 #include <vector>
 #include <iostream>
 
-#include "Math.h"
-#include "Boid.h"
-
 using namespace std;
 
+class Boid;
 class Wall;
 class Ray;
 

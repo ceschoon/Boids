@@ -79,4 +79,9 @@ class Boid
 };
 
 
+// Neighbour detection
+bool isNeighbour(int index, Boid boid);
+void updateNeighbours(vector<Boid> &boids, vector<Wall> walls);
+
+
 #endif //BOID_H

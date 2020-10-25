@@ -12,12 +12,16 @@
 
 #include <iostream>
 #include "Physics.h"
+#include "Boid.h"
+#include "Math.h"
 #include "Rendering.h"
 
 using namespace std;
 
 
 ///////////////////////////////// World ////////////////////////////////////
+
+// TODO: meant to be inherited (child class with custom wall/boid placement)
 
 World::World(double sizeX, double sizeY)
 : sizeX_(sizeX), sizeY_(sizeY)
@@ -135,8 +139,8 @@ void intersection(Ray ray, Wall wall, double &xInt, double &yInt, bool &exists)
 ////////////////////////////// Initialisation //////////////////////////////
 
 
-void addRandomWall(vector<Wall> &walls, int boxSizeX, int boxSizeY,
-                   default_random_engine &gen)
+void World::addRandomWall(vector<Wall> &walls, int boxSizeX, int boxSizeY,
+                          default_random_engine &gen)
 {
 	uniform_real_distribution<double> dist01(0,1);
 	
@@ -149,8 +153,8 @@ void addRandomWall(vector<Wall> &walls, int boxSizeX, int boxSizeY,
 	walls.push_back(wall);
 }
 
-void addRandomWallOnSquareGrid(vector<Wall> &walls, int boxSizeX, int boxSizeY,
-                               default_random_engine &gen)
+void World::addRandomWallOnSquareGrid(vector<Wall> &walls, int boxSizeX, int boxSizeY,
+                                      default_random_engine &gen)
 {
 	// subdivide the box in a Nx by Ny grid of smaller boxes
 	// choose Nx,Ny such as the small boxes have a side length of about 5
@@ -188,8 +192,8 @@ void addRandomWallOnSquareGrid(vector<Wall> &walls, int boxSizeX, int boxSizeY,
 
 
 
-void placeBoids(vector<Boid> &boids, double boxSizeX, double boxSizeY,
-                default_random_engine &gen)
+void World::placeBoids(vector<Boid> &boids, double boxSizeX, double boxSizeY,
+                       default_random_engine &gen)
 {
 	double vInit = 0.00001;
 	uniform_real_distribution<double> dist01(0,1);
@@ -208,7 +212,7 @@ void placeBoids(vector<Boid> &boids, double boxSizeX, double boxSizeY,
 ///////////////////////////// Time Integration /////////////////////////////
 
 
-void advanceTime(vector<Boid> &boids, double dt)
+void World::advanceTime(vector<Boid> &boids, double dt)
 {
 	for (int i=0; i<boids.size(); i++)
 	{
@@ -221,7 +225,7 @@ void advanceTime(vector<Boid> &boids, double dt)
 }
 
 
-void collideWalls(vector<Boid> &boidsOld, vector<Boid> &boidsNew, vector<Wall> walls)
+void World::collideWalls(vector<Boid> &boidsOld, vector<Boid> &boidsNew, vector<Wall> walls)
 {
 	for (int i=0; i<boidsNew.size(); i++)
 	{		
@@ -276,67 +280,3 @@ void collideWalls(vector<Boid> &boidsOld, vector<Boid> &boidsNew, vector<Wall> w
 
 
 
-/////////////////////// Neighbour tests and updates ////////////////////////
-
-bool isNeighbour(int index, Boid boid)
-{
-	bool isIt = false;
-	vector<int> neighbours = boid.neighbours;
-	
-	for (int i=0; i<neighbours.size(); i++)
-	{
-		if (index == neighbours[i]) 
-		{
-			isIt = true;
-			break;
-		}
-	}
-	
-	return isIt;
-}
-
-void updateNeighbours(vector<Boid> &boids, vector<Wall> walls)
-{
-	for (int i=0; i<boids.size(); i++)
-	{
-		vector<int> neighbours = {};
-		
-		for (int j=0; j<boids.size(); j++)
-		{
-			if (i!=j)
-			{
-				// distance condition
-				double d = distance(boids[i].x,boids[i].y,boids[j].x,boids[j].y);
-				
-				// visibility condition (angle)
-				double angleij = angle(boids[i].x,boids[i].y,boids[j].x,boids[j].y);
-				
-				// visibility condition (no wall)
-				bool viewObstructed = false;
-				Ray ray(boids[i].x,boids[i].y,angleij);
-				
-				for (int k=0; k<walls.size(); k++)
-				{
-					bool exists;
-					double xInt,yInt;
-					intersection(ray,walls[k],xInt,yInt,exists);
-					if (exists && distance(boids[i].x,boids[i].y,xInt,yInt)
-						<distance(boids[i].x,boids[i].y,boids[j].x,boids[j].y)) 
-					{
-						viewObstructed = true;
-						break;
-					}
-				}
-				
-				if (d < boids[i].viewRange && 
-					abs(angleDifference(angleij,boids[i].orientation()))<boids[i].viewAngle &&
-					!viewObstructed)
-				{
-					neighbours.push_back(j);
-				}
-			}
-		}
-		
-		boids[i].neighbours = neighbours;
-	}
-}

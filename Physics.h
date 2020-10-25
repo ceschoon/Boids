@@ -21,12 +21,10 @@
 
 #include <SFML/Graphics.hpp>
 
-#include "Math.h"
-#include "Boid.h"
-
 using namespace std;
 
 
+class Boid;
 class Wall;
 class Ray;
 
@@ -37,9 +35,26 @@ class Ray;
 class World
 {
 	public:
+		// Object Construction
 		World(double sizeX, double sizeY);
 		
+		// Rendering
 		void render(sf::RenderWindow &window);
+		
+		// Initialisation
+		void addRandomWall(vector<Wall> &walls, int boxSizeX, int boxSizeY,
+		                   default_random_engine &gen);
+		
+		void addRandomWallOnSquareGrid(vector<Wall> &walls, int boxSizeX, int boxSizeY,
+		                               default_random_engine &gen);
+		
+		void placeBoids(vector<Boid> &boids, double boxSizeX, double boxSizeY,
+		                default_random_engine &gen);
+		
+		// Time Integration
+		void advanceTime(vector<Boid> &boids, double dt);
+		void collideWalls(vector<Boid> &boidsOld, vector<Boid> &boidsNew, 
+		                  vector<Wall> walls);
 	
 	protected:
 		double sizeX_;
@@ -87,47 +102,6 @@ class Ray
 
 
 void intersection(Ray ray, Wall wall, double &xInt, double &yInt, bool &exists);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-////////////////////////////// Initialisation //////////////////////////////
-
-
-void addRandomWall(vector<Wall> &walls, int boxSizeX, int boxSizeY,
-                   default_random_engine &gen);
-
-void addRandomWallOnSquareGrid(vector<Wall> &walls, int boxSizeX, int boxSizeY,
-                               default_random_engine &gen);
-
-void placeBoids(vector<Boid> &boids, double boxSizeX, double boxSizeY,
-                default_random_engine &gen);
-
-
-///////////////////////////// Time Integration /////////////////////////////
-
-
-void advanceTime(vector<Boid> &boids, double dt);
-void collideWalls(vector<Boid> &boidsOld, vector<Boid> &boidsNew, vector<Wall> walls);
-
-
-/////////////////////// Neighbour tests and updates ////////////////////////
-
-
-bool isNeighbour(int index, Boid boid);
-void updateNeighbours(vector<Boid> &boids, vector<Wall> walls);
 
 
 ////////////////////////////////////////////////////////////////////////////

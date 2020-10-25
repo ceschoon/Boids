@@ -249,3 +249,77 @@ void Boid::computeSeparationForce(vector<Boid> &boids, double &fx_, double &fy_)
 		fy_ += F*sin(angle12*PI/180);
 	}
 }
+
+
+
+/////////////////////// Neighbour tests and updates ////////////////////////
+
+
+
+bool isNeighbour(int index, Boid boid)
+{
+	bool isIt = false;
+	vector<int> neighbours = boid.neighbours;
+	
+	for (int i=0; i<neighbours.size(); i++)
+	{
+		if (index == neighbours[i]) 
+		{
+			isIt = true;
+			break;
+		}
+	}
+	
+	return isIt;
+}
+
+
+
+void updateNeighbours(vector<Boid> &boids, vector<Wall> walls)
+{
+	for (int i=0; i<boids.size(); i++)
+	{
+		vector<int> neighbours = {};
+		
+		for (int j=0; j<boids.size(); j++)
+		{
+			if (i!=j)
+			{
+				// distance condition
+				double d = distance(boids[i].x,boids[i].y,boids[j].x,boids[j].y);
+				
+				// visibility condition (angle)
+				double angleij = angle(boids[i].x,boids[i].y,boids[j].x,boids[j].y);
+				
+				// visibility condition (no wall)
+				bool viewObstructed = false;
+				Ray ray(boids[i].x,boids[i].y,angleij);
+				
+				for (int k=0; k<walls.size(); k++)
+				{
+					bool exists;
+					double xInt,yInt;
+					intersection(ray,walls[k],xInt,yInt,exists);
+					if (exists && distance(boids[i].x,boids[i].y,xInt,yInt)
+						<distance(boids[i].x,boids[i].y,boids[j].x,boids[j].y)) 
+					{
+						viewObstructed = true;
+						break;
+					}
+				}
+				
+				if (d < boids[i].viewRange && 
+					abs(angleDifference(angleij,boids[i].orientation()))<boids[i].viewAngle &&
+					!viewObstructed)
+				{
+					neighbours.push_back(j);
+				}
+			}
+		}
+		
+		boids[i].neighbours = neighbours;
+	}
+}
+
+
+

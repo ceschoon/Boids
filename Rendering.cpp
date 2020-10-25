@@ -1,6 +1,8 @@
 
 #include "Rendering.h"
 #include "Physics.h"
+#include "Math.h"
+#include "Boid.h"
 
 using namespace std;
 
