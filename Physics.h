@@ -11,7 +11,10 @@
 
 
 // TODO: put all the physics inside the world class
-
+// TODO: put boids inside of world class
+// TODO: class to be inherited (child class with custom wall/boid placement)
+// TODO: keep pointers to boids instead of making a copy
+//       this way the boids can still be manipulated outside of the class
 
 #ifndef PHYSICS_H
 #define PHYSICS_H
@@ -35,32 +38,36 @@ class Ray;
 class World
 {
 	public:
+		
 		// Object Construction
-		World(double sizeX, double sizeY);
+		World(double sizeX, double sizeY, int seed=-1);
+		
+		// Accessors
+		int getSeed() {return seed_;}
 		
 		// Rendering
 		void render(sf::RenderWindow &window);
 		
 		// Initialisation
-		void addRandomWall(vector<Wall> &walls, int boxSizeX, int boxSizeY,
-		                   default_random_engine &gen);
-		
-		void addRandomWallOnSquareGrid(vector<Wall> &walls, int boxSizeX, int boxSizeY,
-		                               default_random_engine &gen);
-		
-		void placeBoids(vector<Boid> &boids, double boxSizeX, double boxSizeY,
-		                default_random_engine &gen);
+		void addRandomWall();
+		void addRandomWallOnSquareGrid();
+		void placeBoids(const vector<Boid> &boids);
 		
 		// Time Integration
-		void advanceTime(vector<Boid> &boids, double dt);
-		void collideWalls(vector<Boid> &boidsOld, vector<Boid> &boidsNew, 
-		                  vector<Wall> walls);
+		void advanceTime(double T, double dt);
+		void stepRaw(double dt);
+		void collideWalls(const vector<Boid> &boidsOld);
 	
 	protected:
+		
 		double sizeX_;
 		double sizeY_;
 		
 		vector<Wall> walls_;
+		vector<Boid> boids_;
+		
+		int seed_;
+		default_random_engine gen_;
 };
 
 
@@ -70,6 +77,7 @@ class World
 class Wall
 {
 	public:
+		
 		Wall(double x1_, double y1_, double x2_, double y2_)
 		{
 			x1 = x1_;
@@ -88,6 +96,7 @@ class Wall
 class Ray
 {
 	public:
+		
 		Ray(double originX_, double originY_, double angle_)
 		{
 			originX = originX_;

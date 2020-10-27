@@ -31,6 +31,7 @@ class Ray;
 class Boid
 {
 	public: 
+		
 		Boid(double x_, double y_, double orientation_, double v_);
 		
 		// state variables

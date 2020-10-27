@@ -21,11 +21,20 @@ using namespace std;
 
 ///////////////////////////////// World ////////////////////////////////////
 
-// TODO: meant to be inherited (child class with custom wall/boid placement)
-
-World::World(double sizeX, double sizeY)
+World::World(double sizeX, double sizeY, int seed)
 : sizeX_(sizeX), sizeY_(sizeY)
 {
+	// Random number generation
+	
+	if (seed<0)
+	{
+		random_device true_gen;
+		seed = true_gen();
+	}
+	
+	seed_ = seed;
+	gen_ = default_random_engine(seed);
+	
 	// Put walls on the box sides
 	
 	Wall wallBorder0(0,0,0,sizeY_);
@@ -51,6 +60,7 @@ void World::render(sf::RenderWindow &window)
 	
 	renderWalls(window, walls_, scaleX, scaleY);
 }
+
 
 ////////////////////////// Wall - Ray mechanics ////////////////////////////
 
@@ -139,71 +149,70 @@ void intersection(Ray ray, Wall wall, double &xInt, double &yInt, bool &exists)
 ////////////////////////////// Initialisation //////////////////////////////
 
 
-void World::addRandomWall(vector<Wall> &walls, int boxSizeX, int boxSizeY,
-                          default_random_engine &gen)
+void World::addRandomWall()
 {
 	uniform_real_distribution<double> dist01(0,1);
 	
-	double x1 = boxSizeX * dist01(gen);
-	double y1 = boxSizeY * dist01(gen);
-	double x2 = boxSizeX * dist01(gen);
-	double y2 = boxSizeY * dist01(gen);
+	double x1 = sizeX_ * dist01(gen_);
+	double y1 = sizeY_ * dist01(gen_);
+	double x2 = sizeX_ * dist01(gen_);
+	double y2 = sizeY_ * dist01(gen_);
 	
 	Wall wall(x1,y1,x2,y2);
-	walls.push_back(wall);
+	walls_.push_back(wall);
 }
 
-void World::addRandomWallOnSquareGrid(vector<Wall> &walls, int boxSizeX, int boxSizeY,
-                                      default_random_engine &gen)
+void World::addRandomWallOnSquareGrid()
 {
 	// subdivide the box in a Nx by Ny grid of smaller boxes
 	// choose Nx,Ny such as the small boxes have a side length of about 5
 	// we then place a wall randomly on the edges of this grid
 	
-	int Nx = int (boxSizeX/5.0);
-	int Ny = int (boxSizeY/5.0);
+	int Nx = int (sizeX_/5.0);
+	int Ny = int (sizeY_/5.0);
 	
 	uniform_real_distribution<double> dist01(0,1);
 	uniform_int_distribution<int> distX(0,Nx);
 	uniform_int_distribution<int> distY(0,Ny);
 	
-	double dx = boxSizeX*1.0/Nx;
-	double dy = boxSizeY*1.0/Ny;
+	double dx = sizeX_*1.0/Nx;
+	double dy = sizeY_*1.0/Ny;
 	
-	double x1 = dx * distX(gen);
-	double y1 = dy * distY(gen);
+	double x1 = dx * distX(gen_);
+	double y1 = dy * distY(gen_);
 	double x2 = x1;
 	double y2 = y1;
 	
-	double r = dist01(gen);
+	double r = dist01(gen_);
 	
 	if (r<0.5)
 	{
-		while (x2==x1) x2 = dx * distX(gen);
+		while (x2==x1) x2 = dx * distX(gen_);
 	}
 	else
 	{
-		while (y2==y1) y2 = dy * distY(gen);
+		while (y2==y1) y2 = dy * distY(gen_);
 	}
 	
 	Wall wall(x1,y1,x2,y2);
-	walls.push_back(wall);
+	walls_.push_back(wall);
 }
 
 
 
-void World::placeBoids(vector<Boid> &boids, double boxSizeX, double boxSizeY,
-                       default_random_engine &gen)
+void World::placeBoids(const vector<Boid> &boids)
 {
 	double vInit = 0.00001;
 	uniform_real_distribution<double> dist01(0,1);
 	
-	for (int i=0; i<boids.size(); i++)
+	boids_ = boids;
+	
+	for (int i=0; i<boids_.size(); i++)
 	{
-		boids[i].x = boxSizeX*dist01(gen);
-		boids[i].y = boxSizeY*dist01(gen);
-		boids[i].vx = vInit*(-0.5+dist01(gen));	// to avoid problems when superposed
-		boids[i].vy = vInit*(-0.5+dist01(gen)); // and to initiate randommly-orientated movement
+		boids_[i].x = sizeX_*dist01(gen_);
+		boids_[i].y = sizeY_*dist01(gen_);
+		boids_[i].vx = vInit*(-0.5+dist01(gen_));	// to avoid problems when superposed
+		boids_[i].vy = vInit*(-0.5+dist01(gen_)); // and to initiate randommly-orientated movement
 	}
 }
 
@@ -212,33 +221,44 @@ void World::placeBoids(vector<Boid> &boids, double boxSizeX, double boxSizeY,
 ///////////////////////////// Time Integration /////////////////////////////
 
 
-void World::advanceTime(vector<Boid> &boids, double dt)
+void World::stepRaw(double dt)
 {
-	for (int i=0; i<boids.size(); i++)
+	for (int i=0; i<boids_.size(); i++)
 	{
-		boids[i].x += boids[i].vx*dt + 0.5*boids[i].fx*dt*dt;
-		boids[i].y += boids[i].vy*dt + 0.5*boids[i].fy*dt*dt;
+		boids_[i].x += boids_[i].vx*dt + 0.5*boids_[i].fx*dt*dt;
+		boids_[i].y += boids_[i].vy*dt + 0.5*boids_[i].fy*dt*dt;
 		
-		boids[i].vx += boids[i].fx*dt;
-		boids[i].vy += boids[i].fy*dt;
+		boids_[i].vx += boids_[i].fx*dt;
+		boids_[i].vy += boids_[i].fy*dt;
 	}
 }
 
 
-void World::collideWalls(vector<Boid> &boidsOld, vector<Boid> &boidsNew, vector<Wall> walls)
+void World::advanceTime(double T, double dt)
 {
-	for (int i=0; i<boidsNew.size(); i++)
-	{		
-		for (int j=0; j<walls.size(); j++)
+	for (double t=0; t<T; t+=dt)
+	{
+		vector<Boid> boidsOld = boids_;
+		stepRaw(dt);
+		collideWalls(boidsOld);
+	}
+}
+
+
+void World::collideWalls(const vector<Boid> &boidsOld)
+{
+	for (int i=0; i<boids_.size(); i++)
+	{
+		for (int j=0; j<walls_.size(); j++)
 		{
-			double x1 = walls[j].x1;
-			double y1 = walls[j].y1;
-			double x2 = walls[j].x2;
-			double y2 = walls[j].y2;
+			double x1 = walls_[j].x1;
+			double y1 = walls_[j].y1;
+			double x2 = walls_[j].x2;
+			double y2 = walls_[j].y2;
 			double x3 = boidsOld[i].x;
 			double y3 = boidsOld[i].y;
-			double x4 = boidsNew[i].x;
-			double y4 = boidsNew[i].y;
+			double x4 = boids_[i].x;
+			double y4 = boids_[i].y;
 			
 			// Use Ray-Wall intersection code to detect collision
 			
@@ -247,7 +267,7 @@ void World::collideWalls(vector<Boid> &boidsOld, vector<Boid> &boidsNew, vector<
 			
 			bool exists;
 			double xInt, yInt;
-			intersection(ray,walls[j],xInt,yInt,exists);
+			intersection(ray,walls_[j],xInt,yInt,exists);
 			
 			double d34 = distance(x3,y3,x4,y4);
 			double d3Int = distance(x3,y3,xInt,yInt);
@@ -257,22 +277,22 @@ void World::collideWalls(vector<Boid> &boidsOld, vector<Boid> &boidsNew, vector<
 			{
 				// mirror velocities
 				
-				double vx = (boidsOld[i].vx+boidsNew[i].vx)/2;
-				double vy = (boidsOld[i].vy+boidsNew[i].vy)/2;
+				double vx = (boidsOld[i].vx+boids_[i].vx)/2;
+				double vy = (boidsOld[i].vy+boids_[i].vy)/2;
 				double V = sqrt(vx*vx+vy*vy);
 				double angleV = angle(0,0,vx,vy);
 				double angle12 = angle(x1,y1,x2,y2);
 				
 				double angleVMirror = 2*angle12-angleV;
-				boidsNew[i].vx = V*cos(angleVMirror*PI/180);
-				boidsNew[i].vy = V*sin(angleVMirror*PI/180);
+				boids_[i].vx = V*cos(angleVMirror*PI/180);
+				boids_[i].vy = V*sin(angleVMirror*PI/180);
 				
 				// mirror positions
 				
 				double angle34Mirror = 2*angle12-angle34;
 				double dInt4 = d34-d3Int;
-				boidsNew[i].x = xInt + dInt4*cos(angle34Mirror*PI/180);
-				boidsNew[i].y = yInt + dInt4*sin(angle34Mirror*PI/180);
+				boids_[i].x = xInt + dInt4*cos(angle34Mirror*PI/180);
+				boids_[i].y = yInt + dInt4*sin(angle34Mirror*PI/180);
 			}
 		}
 	}

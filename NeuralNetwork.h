@@ -34,9 +34,7 @@ class NeuralNetwork
 				seed = true_gen();
 			}
 			
-			cout << endl;
-			cout << "seed = " << seed << endl;
-			
+			seed_ = seed;
 			gen_ = default_random_engine(seed);
 		}
 		
@@ -48,6 +46,8 @@ class NeuralNetwork
 		void perturbBiases(double mean, double std);
 		
 		vector<double> eval(vector<double> sensors);
+		
+		int getSeed() {return seed_;}
 		
 		int getNumSensors() {return Ns_;}
 		int getNumLayers() {return Nl_;}
@@ -70,6 +70,7 @@ class NeuralNetwork
 		vector<double> b_; // biases
 		
 		// random number generation
+		int seed_;
 		default_random_engine gen_;
 		
 		// define type of sigmoid function used
