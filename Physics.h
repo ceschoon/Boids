@@ -44,6 +44,7 @@ class World
 		
 		// Accessors
 		int getSeed() {return seed_;}
+		Boid getBoid(int i=0);
 		
 		// Rendering
 		void render(sf::RenderWindow &window);
@@ -51,7 +52,7 @@ class World
 		// Initialisation
 		void addRandomWall();
 		void addRandomWallOnSquareGrid();
-		void placeBoids(const vector<Boid> &boids);
+		void placeBoids(vector<Boid> boids);
 		
 		// Time Integration
 		void advanceTime(double T, double dt);

@@ -49,6 +49,11 @@ World::World(double sizeX, double sizeY, int seed)
 }
 
 
+/////////////////////////////// Accessors //////////////////////////////////
+
+Boid World::getBoid(int i) {return boids_[i];}
+
+
 //////////////////////// World rendering (call) ////////////////////////////
 
 void World::render(sf::RenderWindow &window)
@@ -58,6 +63,8 @@ void World::render(sf::RenderWindow &window)
 	
 	renderWalls(window, walls_, scaleX, scaleY);
 	renderBoidsAsTriangles(window, boids_, scaleX, scaleY);
+	
+	cout << "rendering world" << endl;
 }
 
 
@@ -199,9 +206,9 @@ void World::addRandomWallOnSquareGrid()
 
 
 
-void World::placeBoids(const vector<Boid> &boids)
+void World::placeBoids(vector<Boid> boids)
 {
-	double vInit = 0.00001;
+	double vInit = 1e-5;
 	uniform_real_distribution<double> dist01(0,1);
 	
 	boids_ = boids;
@@ -210,9 +217,11 @@ void World::placeBoids(const vector<Boid> &boids)
 	{
 		boids_[i].x = sizeX_*dist01(gen_);
 		boids_[i].y = sizeY_*dist01(gen_);
-		boids_[i].vx = vInit*(-0.5+dist01(gen_));	// to avoid problems when superposed
+		boids_[i].vx = vInit*(-0.5+dist01(gen_)); // to avoid problems when superposed
 		boids_[i].vy = vInit*(-0.5+dist01(gen_)); // and to initiate randommly-orientated movement
 	}
+	
+	updateNeighbours(boids_, walls_);
 }
 
 
@@ -240,6 +249,9 @@ void World::advanceTime(double T, double dt)
 		vector<Boid> boidsOld = boids_;
 		stepRaw(dt);
 		collideWalls(boidsOld);
+		updateNeighbours(boids_, walls_);
+		
+		cout << "stepped forward" << endl;
 	}
 }
 

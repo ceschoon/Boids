@@ -29,4 +29,4 @@ Rendering.o :
 	$(CC) $(CFLAGS) -c Rendering.cpp
 
 clean :
-	rm *.o *.so *.a
+	rm *.o *.a
