@@ -56,9 +56,8 @@ void World::render(sf::RenderWindow &window)
 	double scaleX = window.getSize().x/sizeX_;
 	double scaleY = window.getSize().y/sizeY_;
 	
-	// TODO: call render functions from "Rendering.h"
-	
 	renderWalls(window, walls_, scaleX, scaleY);
+	renderBoidsAsTriangles(window, boids_, scaleX, scaleY);
 }
 
 

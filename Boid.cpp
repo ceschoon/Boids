@@ -55,7 +55,7 @@ void Boid::resetForce()
 
 
 
-void Boid::computePhysicalForces(vector<Boid> &boids, vector<Wall> &walls)
+void Boid::computePhysicalForces(const vector<Boid> &boids, const vector<Wall> &walls)
 {
 	// compute and sum all physical forces
 	
@@ -72,7 +72,7 @@ void Boid::computePhysicalForces(vector<Boid> &boids, vector<Wall> &walls)
 
 
 
-void Boid::computeBehaviouralForces(vector<Boid> &boids, vector<Wall> &walls)
+void Boid::computeBehaviouralForces(const vector<Boid> &boids, const vector<Wall> &walls)
 {
 	// compute and sum all behavioural forces
 	
@@ -100,7 +100,7 @@ void Boid::computeBehaviouralForces(vector<Boid> &boids, vector<Wall> &walls)
 
 
 
-void Boid::computeCohesionForce(vector<Boid> &boids, double &fx_, double &fy_)
+void Boid::computeCohesionForce(const vector<Boid> &boids, double &fx_, double &fy_)
 {
 	int N = neighbours.size();
 	if (N==0) return;
@@ -130,7 +130,7 @@ void Boid::computeCohesionForce(vector<Boid> &boids, double &fx_, double &fy_)
 
 
 
-void Boid::computeAlignmentForce(vector<Boid> &boids, double &fx_, double &fy_)
+void Boid::computeAlignmentForce(const vector<Boid> &boids, double &fx_, double &fy_)
 {
 	if (neighbours.size()==0) return;
 	
@@ -151,7 +151,7 @@ void Boid::computeAlignmentForce(vector<Boid> &boids, double &fx_, double &fy_)
 
 
 
-void Boid::computeWallAvoidingForce(vector<Boid> &boids, vector<Wall> &walls,
+void Boid::computeWallAvoidingForce(const vector<Boid> &boids, const vector<Wall> &walls,
                                     double &fx_, double &fy_)
 {
 	bool foundFreeRay = false;
@@ -223,7 +223,7 @@ void Boid::computeWallAvoidingForce(vector<Boid> &boids, vector<Wall> &walls,
 
 
 
-void Boid::computeDragForce(vector<Boid> &boids, double &fx_, double &fy_)
+void Boid::computeDragForce(const vector<Boid> &boids, double &fx_, double &fy_)
 {
 	double speed2 = vx*vx + vy*vy;
 	double angleSpeed = angle(0,0,vx,vy);
@@ -234,7 +234,7 @@ void Boid::computeDragForce(vector<Boid> &boids, double &fx_, double &fy_)
 
 
 
-void Boid::computeSeparationForce(vector<Boid> &boids, double &fx_, double &fy_)
+void Boid::computeSeparationForce(const vector<Boid> &boids, double &fx_, double &fy_)
 {
 	for (int j=0; j<neighbours.size(); j++)
 	{

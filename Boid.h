@@ -62,21 +62,21 @@ class Boid
 		
 		// Accessor-ish
 		
-		double orientation() {return angle(0,0,vx,vy);}
+		double orientation() const {return angle(0,0,vx,vy);}
 		
 		// Force-related Methods
 		
 		void resetForce();
-		void computeBehaviouralForces(vector<Boid> &boids, vector<Wall> &walls);
-		void computePhysicalForces(vector<Boid> &boids, vector<Wall> &walls);
+		void computeBehaviouralForces(const vector<Boid> &boids, const vector<Wall> &walls);
+		void computePhysicalForces(const vector<Boid> &boids, const vector<Wall> &walls);
 		
-		void computeCohesionForce(vector<Boid> &boids, double &fx_, double &fy_);
-		void computeAlignmentForce(vector<Boid> &boids, double &fx_, double &fy_);
-		void computeWallAvoidingForce(vector<Boid> &boids, vector<Wall> &walls, 
+		void computeCohesionForce(const vector<Boid> &boids, double &fx_, double &fy_);
+		void computeAlignmentForce(const vector<Boid> &boids, double &fx_, double &fy_);
+		void computeWallAvoidingForce(const vector<Boid> &boids, const vector<Wall> &walls, 
 		                              double &fx_, double &fy_);
 		
-		void computeDragForce(vector<Boid> &boids, double &fx_, double &fy_);
-		void computeSeparationForce(vector<Boid> &boids, double &fx_, double &fy_);
+		void computeDragForce(const vector<Boid> &boids, double &fx_, double &fy_);
+		void computeSeparationForce(const vector<Boid> &boids, double &fx_, double &fy_);
 };
 
 
