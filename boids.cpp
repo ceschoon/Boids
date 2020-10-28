@@ -3,12 +3,9 @@
 //                          * Boid Simulation *                           //
 //                                                                        //
 //    Author: Cédric Schoonen <cedric.schoonen1@gmail.com>                //
-//    September 2019, April 2020                                          //
+//    September 2019, April 2020, October 2020                            //
 //                                                                        //
 //    Developped under Ubuntu 18.04 with g++ 7.4.0 and sfml 2.4           //
-//    Compile with $ g++ -O3 -o boids boids.cpp \                         //
-//                   Boid.cpp Physics.cpp Math.cpp \                      //
-//                   -lsfml-graphics -lsfml-window -lsfml-system          //
 //                                                                        //
 //    Usage: ./boids --<option name>=<option value>                       //
 //    Execute "./boids --help" for more details on the program usage      //
@@ -16,7 +13,7 @@
 ////////////////////////////////////////////////////////////////////////////
 
 
-
+// TODO: Suggestions from old code
 // Suggestions for updates: 
 
 // Bigger box and partial view following the boids (see DLA rendering code)
@@ -39,20 +36,6 @@
 // Boid cohesion only with neighbours in sight (orientation force instead?)
 // Remove orientation state variable --> member function instead for speed angle
 
-
-// TODO (urgent fixes):
-
-
-
-// File structure:
-
-// boids.cpp                Simulation main file, options 
-// Boid.h, ~.cpp            Boid classes and subclasses, AI and
-//                          behavioural interaction
-// Physics.h ~.cpp          Walls & Rays classes, physical interactions, 
-//                          physical neigh. lists??
-// Math.h, ~.cpp            Some mathematical functions
-// Rendering.h              Rendering functions
 
 
 ////////////////////////////////////////////////////////////////////////////	    
@@ -77,7 +60,7 @@ int main(int argc, char **argv)
 {
 	/////////////////////////////// Version ////////////////////////////////
 	
-	string versionCode = "1.3.0";
+	string versionCode = "1.4.0";
 	
 	for (int i=0; i<argc; i++) if (string(argv[i]).substr(0,9)=="--version")
 	{
@@ -86,6 +69,7 @@ int main(int argc, char **argv)
 		
 		return 0;
 	}
+	
 	
 	//////////////////////////////// Help //////////////////////////////////
 	
@@ -112,6 +96,7 @@ int main(int argc, char **argv)
 		return 0;
 	}
 	
+	
 	////////////////////////////// Randomness //////////////////////////////
 	
 	random_device true_gen;
@@ -128,7 +113,8 @@ int main(int argc, char **argv)
 	cout << "seed = " << seed << endl;
 	default_random_engine gen(seed);
 	
-	///////////////////////////// Wall placement ///////////////////////////
+	
+	///////////////////////////// World Creation ///////////////////////////
 	
 	double boxSizeX = 30;
 	double boxSizeY = 30;
@@ -147,13 +133,8 @@ int main(int argc, char **argv)
 		catch (...) {cout << "Error reading boxSizeX option: " << arg << endl;}
 	}
 	
-	// construct bounding box
-	
-	Wall wallBorder0(0,0,0,boxSizeY);
-	Wall wallBorder1(0,boxSizeY,boxSizeX,boxSizeY);
-	Wall wallBorder2(boxSizeX,boxSizeY,boxSizeX,0);
-	Wall wallBorder3(boxSizeX,0,0,0);
-	vector<Wall> walls = {wallBorder0,wallBorder1,wallBorder2,wallBorder3};
+	// create world
+	World world(30,30,seed);
 	
 	// try to use a specified average number walls if given in arguments
 	double avgWalls = 4;
@@ -169,8 +150,8 @@ int main(int argc, char **argv)
 	poisson_distribution<int> dist(avgWalls);
 	int numWalls = dist(gen);
 	
-	for (int i=0; i<numWalls; i++)
-		addRandomWallOnSquareGrid(walls, boxSizeX, boxSizeY, gen);
+	for (int i=0; i<numWalls; i++) world.addRandomWallOnSquareGrid();
+	
 	
 	/////////////////////////// Boid placement /////////////////////////////
 	
@@ -183,20 +164,9 @@ int main(int argc, char **argv)
 		catch (...) {cout << "Error reading nBoids option: " << arg << endl;}
 	}
 	
-	Boid boid(0,0,0);
+	Boid boid(0,0,0,1e-3);
 	vector<Boid> boids(nBoids,boid);
-	
-	// special boid
-	//boids[0].a = 1;
-	//boids[0].b = 1;
-	//boids[0].s = 1.0/180*40;
-	//boids[0].f = 200;
-	//boids[0].c = 10;
-	//boids[0].m = 50;
-	//boids[0].range = 5;
-	
-	placeBoids(boids, boxSizeX, boxSizeY, gen);
-	updateNeighbours(boids,walls);
+	world.placeBoids(boids);
 	
 	/////////////////////////////// Window /////////////////////////////////
 	
@@ -219,8 +189,7 @@ int main(int argc, char **argv)
 	
 	sf::RenderWindow window(sf::VideoMode(windowSizeX,windowSizeY),"Boids");
 	
-	double scaleX = windowSizeX/boxSizeX;
-	double scaleY = windowSizeY/boxSizeY;
+	//window.setFramerateLimit(1);
 	
 	////////////////////////////// Main Loop ///////////////////////////////
 	
@@ -231,10 +200,6 @@ int main(int argc, char **argv)
 	bool pause = false;
 	bool slowdown = false;
 	bool accelerate = false;
-	
-	bool isMouseInWindow = false;
-	double mouseX = 0;
-	double mouseY = 0;
 	
 	while (window.isOpen())
 	{
@@ -265,22 +230,6 @@ int main(int argc, char **argv)
 			{
 				accelerate = !accelerate;
 			}
-			
-			if (event.type == sf::Event::MouseMoved)
-			{
-				mouseX = event.mouseMove.x/scaleX;
-				mouseY = event.mouseMove.y/scaleY;
-			}
-			
-			if (event.type == sf::Event::MouseEntered)
-			{
-				isMouseInWindow = true;
-			}
-			
-			if (event.type == sf::Event::MouseLeft)
-			{
-				isMouseInWindow = false;
-			}
 		}
 		
 		if (!pause) 
@@ -296,39 +245,17 @@ int main(int argc, char **argv)
 			
 			////////////////////////// Time Step ///////////////////////////
 			
-			//resetForce(boids);
-			//drivingForce(boids);
-			//drag(boids);
-			//separation(boids);
-			//cohesion(boids);
-			//alignment(boids);
-			//avoidWalls(boids, walls);
-			
-			for (int i=0; i<boids.size(); i++)
-			{
-				boids[i].resetForce();
-				boids[i].computePhysicalForces(boids, walls);
-				boids[i].computeBehaviouralForces(boids, walls);
-			}
-			
-			info(boids[0]);
-			
-			vector<Boid> boidsOld = boids;
-			advanceTime(boids,dt);
-			collideWalls(boidsOld,boids,walls);
-			orientationWithSpeed(boids);
-			updateNeighbours(boids, walls);
+			world.advanceTime(dt+1e-8,dt);
 			t += dt;
+			
+			// TODO debug info
+			Boid boid = world.getBoid(0);
+			info(boid);
 			
 			/////////////////////////// Rendering //////////////////////////
 			
 			window.clear(sf::Color::White);
-			renderBoidsAsTriangles(window,boids,scaleX,scaleY);
-			//renderBoidsHighlight(window,boids,scaleX,scaleY,0);
-			//renderBoidsAsPoints(window,boids,scaleX,scaleY);
-			renderForces(window,boids,scaleX,scaleY);
-			renderWalls(window,walls,scaleX,scaleY);
-			//if (isMouseInWindow) renderMouse(window,mouseX,mouseY,scaleX,scaleY);
+			world.render(window);
 			window.display();
 		}
 		else
