@@ -45,9 +45,11 @@ class World
 		// Accessors
 		int getSeed() {return seed_;}
 		Boid getBoid(int i=0);
+		vector<Boid> getBoids() {return boids_;}
 		
 		// Rendering
 		void render(sf::RenderWindow &window);
+		void renderAndHighlightBoid(sf::RenderWindow &window, int i);
 		
 		// Initialisation
 		void addRandomWall();

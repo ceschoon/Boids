@@ -63,10 +63,17 @@ void World::render(sf::RenderWindow &window)
 	
 	renderWalls(window, walls_, scaleX, scaleY);
 	renderBoidsAsTriangles(window, boids_, scaleX, scaleY);
-	
-	cout << "rendering world" << endl;
 }
 
+
+void World::renderAndHighlightBoid(sf::RenderWindow &window, int i)
+{
+	double scaleX = window.getSize().x/sizeX_;
+	double scaleY = window.getSize().y/sizeY_;
+	
+	renderWalls(window, walls_, scaleX, scaleY);
+	renderBoidsHighlight(window, boids_, scaleX, scaleY, i);
+}
 
 ////////////////////////// Wall - Ray mechanics ////////////////////////////
 
@@ -246,12 +253,19 @@ void World::advanceTime(double T, double dt)
 {
 	for (double t=0; t<T; t+=dt)
 	{
+		// Compute forces
+		for (int i=0; i<boids_.size(); i++)
+		{
+			boids_[i].resetForce();
+			boids_[i].computePhysicalForces(boids_, walls_);
+			boids_[i].computeBehaviouralForces(boids_, walls_);
+		}
+		
+		// Integrate
 		vector<Boid> boidsOld = boids_;
 		stepRaw(dt);
 		collideWalls(boidsOld);
 		updateNeighbours(boids_, walls_);
-		
-		cout << "stepped forward" << endl;
 	}
 }
 

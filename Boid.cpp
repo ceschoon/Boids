@@ -226,10 +226,9 @@ void Boid::computeWallAvoidingForce(const vector<Boid> &boids, const vector<Wall
 void Boid::computeDragForce(const vector<Boid> &boids, double &fx_, double &fy_)
 {
 	double speed2 = vx*vx + vy*vy;
-	double angleSpeed = angle(0,0,vx,vy);
 	
-	fx_ -= 0.5*c*speed2*cos(angleSpeed*PI/180);
-	fy_ -= 0.5*c*speed2*sin(angleSpeed*PI/180);
+	fx_ -= 0.5*c*speed2*cos(orientation()*PI/180);
+	fy_ -= 0.5*c*speed2*sin(orientation()*PI/180);
 }
 
 
