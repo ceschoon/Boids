@@ -56,6 +56,34 @@ using namespace std;
 void info(Boid boid);
 
 
+
+class myBoid : public Boid
+{
+	public: 
+	
+	myBoid(double x_, double y_, double orientation_, double v_)
+	: Boid(x_,y_,orientation_,v_)
+	{
+		b = 1;               // default = 1
+		s = 1.0/180*10 ;     // default = 1.0/180*10
+		w = 1.0/180*100;     // default = 1.0/180*100
+		
+		a = 10;              // default = 10
+		c = 1;               // default = 1
+		
+		f = 10;              // default = 10
+		f1 = 0;              // default = 5
+		f2 = 50;             // default = 50
+		
+		viewRange = 10;      // default = 10
+		obstacleRange = 5;   // default = 5
+		viewAngle = 120;     // default = 120
+	}
+};
+
+
+
+
 int main(int argc, char **argv)
 {
 	/////////////////////////////// Version ////////////////////////////////
@@ -164,9 +192,9 @@ int main(int argc, char **argv)
 		catch (...) {cout << "Error reading nBoids option: " << arg << endl;}
 	}
 	
-	Boid boid(0,0,0,1e-3);
+	myBoid boid(0,0,0,1e-3);
 	vector<Boid> boids(nBoids,boid);
-	world.placeBoids(boids);
+	world.placeBoids(boids); // TODO: should handle children class of Boid
 	
 	/////////////////////////////// Window /////////////////////////////////
 	
@@ -248,14 +276,15 @@ int main(int argc, char **argv)
 			world.advanceTime(dt+1e-8,dt);
 			t += dt;
 			
-			// TODO debug info
-			Boid boid = world.getBoid(0);
-			info(boid);
+			//// debug info
+			//Boid boid = world.getBoid(0);
+			//info(boid);
 			
 			/////////////////////////// Rendering //////////////////////////
 			
 			window.clear(sf::Color::White);
-			world.render(window);
+			//world.render(window);
+			world.renderAndHighlightBoid(window,0);
 			window.display();
 		}
 		else
