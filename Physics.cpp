@@ -11,6 +11,7 @@
 
 
 #include <iostream>
+#include <omp.h>
 #include "Physics.h"
 #include "Boid.h"
 #include "Math.h"
@@ -238,6 +239,7 @@ void World::placeBoids(vector<Boid> boids)
 
 void World::stepRaw(double dt)
 {
+	#pragma omp parallel for
 	for (int i=0; i<boids_.size(); i++)
 	{
 		boids_[i].x += boids_[i].vx*dt + 0.5*boids_[i].fx*dt*dt;
@@ -254,6 +256,8 @@ void World::advanceTime(double T, double dt)
 	for (double t=0; t<T; t+=dt)
 	{
 		// Compute forces
+		
+		#pragma omp parallel for
 		for (int i=0; i<boids_.size(); i++)
 		{
 			boids_[i].resetForce();
@@ -262,6 +266,7 @@ void World::advanceTime(double T, double dt)
 		}
 		
 		// Integrate
+		
 		vector<Boid> boidsOld = boids_;
 		stepRaw(dt);
 		collideWalls(boidsOld);
@@ -272,6 +277,7 @@ void World::advanceTime(double T, double dt)
 
 void World::collideWalls(const vector<Boid> &boidsOld)
 {
+	#pragma omp parallel for
 	for (int i=0; i<boids_.size(); i++)
 	{
 		for (int j=0; j<walls_.size(); j++)

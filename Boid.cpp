@@ -11,6 +11,7 @@
 
 
 #include <iostream>
+#include <omp.h>
 #include <cmath>
 #include "Boid.h"
 #include "Physics.h"
@@ -276,6 +277,7 @@ bool isNeighbour(int index, Boid boid)
 
 void updateNeighbours(vector<Boid> &boids, vector<Wall> walls)
 {
+	#pragma omp parallel for
 	for (int i=0; i<boids.size(); i++)
 	{
 		vector<int> neighbours = {};

@@ -5,7 +5,7 @@
 # -lsfml-graphics -lsfml-window -lsfml-system
 
 CC = g++
-CFLAGS = -O3 # -fPIC flag needed if building a shared library
+CFLAGS = -O3 -fopenmp # -fPIC flag needed if building a shared library
 
 #libboids.so : NeuralNetwork.o Math.o Boid.o Physics.o Rendering.o
 #	$(CC) -shared $^ -o $@
