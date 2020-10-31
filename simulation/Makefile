@@ -1,5 +1,5 @@
 
-LIBBOIDSDIR = ../libBoids
+LIBBOIDSDIR = ../lib
 
 CC = g++
 CFLAGS = -O3 -fopenmp
