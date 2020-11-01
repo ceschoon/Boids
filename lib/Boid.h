@@ -11,11 +11,10 @@
 
 // TODO: bad naming convention (member var shoud be underscored instead)
 // TODO: member variables should be encapsulated
-// TODO: boid properties should not be hard-coded
-// TODO: boid class should be better prepared for inheritance
 
-// TODO: boid-wall repulsion should be achieved with repulsive potential
+// TODO: boid class should be better prepared for inheritance
 // TODO: move physical forces in physics class
+// TODO: boid-wall repulsion should be achieved with repulsive potential
 
 
 #ifndef BOID_H

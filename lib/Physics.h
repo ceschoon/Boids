@@ -11,9 +11,8 @@
 
 
 // TODO: put all the physics inside the world class
-// TODO: put boids inside of world class
-// TODO: class to be inherited (child class with custom wall/boid placement)
-// TODO: keep pointers to boids instead of making a copy
+// TODO: prepare for inheritance (e.g. child with custom wall/boid placement)
+// TODO: ? keep pointers to boids instead of making a copy ?
 //       this way the boids can still be manipulated outside of the class
 
 #ifndef PHYSICS_H
