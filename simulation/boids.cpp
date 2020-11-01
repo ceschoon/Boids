@@ -13,17 +13,17 @@
 ////////////////////////////////////////////////////////////////////////////
 
 
-// TODO: Suggestions from old code
+// TODO: use standard argument parsing function
+
+
 // Suggestions for updates: 
 
+// Neural network for boid behaviour
 // Bigger box and partial view following the boids (see DLA rendering code)
-// Optimisation for better performance (the code has never been optimised)
+// Optimisation for better performance
 // New classes that inherits the basic Boid but for other parameters
 // --> Flies with 180 view angle and 0 alignement
 // --> Try bird in V-shape ??
-// Distinguish physical forces and behavioural forces 
-// --> Two different vectors, with different caps
-// --> Convert all behavioural forces to orientation forces or acceleration
 // Ecosystem of boids with prey-predator relationships ??
 // Reaction time for boids
 // --> Implementation with a delay in the neighbour list updates
@@ -31,13 +31,10 @@
 //     integration, thus saving computational power
 // --> Two neighbour lists (physical and behavioural ones?),
 //     the physical list can be associated with a fixed, smaller range
-// Better wall avoidance (try seperation force in 1/r^2, in addition)
-//                       (also the current behavioural one with rays is bad)
-// Boid cohesion only with neighbours in sight (orientation force instead?)
-// Remove orientation state variable --> member function instead for speed angle
+// Better wall-boid physics (add repulsive force in 1/r^2)
 
 
-////////////////////////////////////////////////////////////////////////////	    
+////////////////////////////////////////////////////////////////////////////
 
 
 #include <SFML/Graphics.hpp>
