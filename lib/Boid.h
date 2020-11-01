@@ -14,6 +14,9 @@
 // TODO: boid properties should not be hard-coded
 // TODO: boid class should be better prepared for inheritance
 
+// TODO: boid-wall repulsion should be achieved with repulsive potential
+// TODO: move physical forces in physics class
+
 
 #ifndef BOID_H
 #define BOID_H

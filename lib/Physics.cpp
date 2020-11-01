@@ -67,13 +67,14 @@ void World::render(sf::RenderWindow &window)
 }
 
 
-void World::renderAndHighlightBoid(sf::RenderWindow &window, int i)
+void World::renderDebug(sf::RenderWindow &window, int i, bool forces)
 {
 	double scaleX = window.getSize().x/sizeX_;
 	double scaleY = window.getSize().y/sizeY_;
 	
 	renderWalls(window, walls_, scaleX, scaleY);
 	renderBoidsHighlight(window, boids_, scaleX, scaleY, i);
+	if (forces) renderForces(window, boids_, scaleX, scaleY);
 }
 
 ////////////////////////// Wall - Ray mechanics ////////////////////////////

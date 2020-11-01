@@ -64,20 +64,22 @@ class myBoid : public Boid
 	myBoid(double x_, double y_, double orientation_, double v_)
 	: Boid(x_,y_,orientation_,v_)
 	{
-		b = 1;               // default = 1
-		s = 1.0/180*10 ;     // default = 1.0/180*10
-		w = 1.0/180*100;     // default = 1.0/180*100
 		
-		a = 10;              // default = 10
+		b = 0.1;             // default = 0.1
+		s = 5.0/180;         // default = 5.0/180
+		w = 25.0/180;        // default = 25.0/180
+		
+		a = 1;               // default = 1
 		c = 1;               // default = 1
 		
 		f = 10;              // default = 10
-		f1 = 0;              // default = 5
-		f2 = 50;             // default = 50
+		f1 = 10;             // default = 10
+		f2 = 10;             // default = 10
 		
 		viewRange = 10;      // default = 10
 		obstacleRange = 5;   // default = 5
 		viewAngle = 120;     // default = 120
+		
 	}
 };
 
@@ -283,8 +285,8 @@ int main(int argc, char **argv)
 			/////////////////////////// Rendering //////////////////////////
 			
 			window.clear(sf::Color::White);
-			//world.render(window);
-			world.renderAndHighlightBoid(window,0);
+			world.render(window);
+			//world.renderDebug(window,0,true);
 			window.display();
 		}
 		else

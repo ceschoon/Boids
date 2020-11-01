@@ -49,7 +49,7 @@ class World
 		
 		// Rendering
 		void render(sf::RenderWindow &window);
-		void renderAndHighlightBoid(sf::RenderWindow &window, int i);
+		void renderDebug(sf::RenderWindow &window, int i, bool forces=false);
 		
 		// Initialisation
 		void addRandomWall();
