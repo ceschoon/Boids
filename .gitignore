@@ -1,0 +1,6 @@
+lib/*.o
+lib/*.a
+lib/*.so
+
+simulation/boids
+
