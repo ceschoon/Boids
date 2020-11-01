@@ -37,13 +37,13 @@
 // Remove orientation state variable --> member function instead for speed angle
 
 
-
 ////////////////////////////////////////////////////////////////////////////	    
 
 
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include <thread>
+#include <chrono>
 
 #include "Math.h"
 #include "Boid.h"
@@ -51,6 +51,7 @@
 #include "Rendering.h"
 
 using namespace std;
+using namespace std::chrono;
 
 
 void info(Boid boid);
@@ -219,17 +220,20 @@ int main(int argc, char **argv)
 	
 	sf::RenderWindow window(sf::VideoMode(windowSizeX,windowSizeY),"Boids");
 	
-	//window.setFramerateLimit(1);
+	window.setFramerateLimit(30);
 	
 	////////////////////////////// Main Loop ///////////////////////////////
 	
 	double t = 0;
 	double dt = 0.01;
-	int tSleep = dt*1000;
+	double timeConvFactorBase = 1;
+	double timeConvFactor = timeConvFactorBase;
 	
 	bool pause = false;
 	bool slowdown = false;
 	bool accelerate = false;
+	
+	steady_clock::time_point lastFrame = steady_clock::now();
 	
 	while (window.isOpen())
 	{
@@ -267,16 +271,23 @@ int main(int argc, char **argv)
 			//////////////////////////// Timing ////////////////////////////
 			
 			if (slowdown)
-				this_thread::sleep_for(std::chrono::milliseconds(10*tSleep));
+				timeConvFactor = timeConvFactorBase/5;
 			else if (accelerate)
-				;// do not slow for rendering
+				timeConvFactor = timeConvFactorBase*5;
 			else
-				this_thread::sleep_for(std::chrono::milliseconds(tSleep));
+				timeConvFactor = timeConvFactorBase;
 			
 			////////////////////////// Time Step ///////////////////////////
 			
-			world.advanceTime(dt+1e-8,dt);
-			t += dt;
+			steady_clock::time_point presentFrame = steady_clock::now();
+			double time_real = duration_cast<duration<double>> 
+			                   (presentFrame - lastFrame).count();
+			lastFrame = presentFrame;
+			
+			double time_world = time_real*timeConvFactor;
+			
+			world.advanceTime(time_world,dt);
+			t += time_world;
 			
 			//// debug info
 			//Boid boid = world.getBoid(0);
@@ -292,7 +303,9 @@ int main(int argc, char **argv)
 		else
 		{
 			// do not use all cpu usage when in pause
-			this_thread::sleep_for(std::chrono::milliseconds(100));
+			this_thread::sleep_for(milliseconds(100));
+			
+			lastFrame = steady_clock::now();
 		}
 	}
 	
