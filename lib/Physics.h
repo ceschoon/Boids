@@ -39,7 +39,7 @@ class World
 	public:
 		
 		// Object Construction
-		World(double sizeX, double sizeY, int seed=-1);
+		World(double sizeX, double sizeY, int seed=0);
 		
 		// Accessors
 		int getSeed() {return seed_;}

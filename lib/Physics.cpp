@@ -27,7 +27,7 @@ World::World(double sizeX, double sizeY, int seed)
 {
 	// Random number generation
 	
-	if (seed<0)
+	if (seed==0)
 	{
 		random_device true_gen;
 		seed = true_gen();
