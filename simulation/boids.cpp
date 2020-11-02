@@ -72,7 +72,7 @@ class myBoid : public Boid
 		
 		f = 10;              // default = 10
 		f1 = 10;             // default = 10
-		f2 = 10;             // default = 10
+		f2 = 50;             // default = 10 or 50
 		
 		viewRange = 10;      // default = 10
 		obstacleRange = 5;   // default = 5
