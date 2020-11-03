@@ -88,7 +88,7 @@ int main(int argc, char **argv)
 {
 	/////////////////////////////// Version ////////////////////////////////
 	
-	string versionCode = "1.4.0";
+	string versionCode = "1.4.1";
 	
 	for (int i=0; i<argc; i++) if (string(argv[i]).substr(0,9)=="--version")
 	{
