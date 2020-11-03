@@ -2,7 +2,7 @@
 LIBBOIDSDIR = ../lib
 
 CC = g++
-CFLAGS = -O3 -fopenmp
+CFLAGS = -O3 #-fopenmp
 
 boids : boids.cpp
 	$(CC) $(CFLAGS) -o $@ $^ \

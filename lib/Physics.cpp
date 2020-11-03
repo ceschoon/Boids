@@ -84,14 +84,19 @@ void intersection(Ray ray, Wall wall, double &xInt, double &yInt, bool &exists)
 {
 	exists = true;
 	
+	// this function is called many times, optimise it by
+	// storing sin and cos in variables
+	double cosAngle = cos(ray.angle*PI/180);
+	double sinAngle = sin(ray.angle*PI/180);
+	
 	double x1 = wall.x1;
 	double y1 = wall.y1;
 	double x2 = wall.x2;
 	double y2 = wall.y2;
 	double x3 = ray.originX;
 	double y3 = ray.originY;
-	double x4 = x3 + cos(ray.angle*PI/180); // whatever on the ray line
-	double y4 = y3 + sin(ray.angle*PI/180); // whatever on the ray line
+	double x4 = x3 + cosAngle; // whatever on the ray line
+	double y4 = y3 + sinAngle; // whatever on the ray line
 	
 	if (x1==x2 && x3==x4)
 	{
@@ -109,13 +114,13 @@ void intersection(Ray ray, Wall wall, double &xInt, double &yInt, bool &exists)
 		
 		// check if intersection is in the direction of the ray
 		// if ray goes to positive x, intersection must be > x3
-		if (cos(ray.angle*PI/180)>0 && xInt<x3) exists = false;
+		if (cosAngle>0 && xInt<x3) exists = false;
 		// if ray goes to negative x, intersection must be < x3
-		if (cos(ray.angle*PI/180)<0 && xInt>x3) exists = false;
+		if (cosAngle<0 && xInt>x3) exists = false;
 		// if ray goes to positive y, intersection must be > y3
-		if (sin(ray.angle*PI/180)>0 && yInt<y3) exists = false;
+		if (sinAngle>0 && yInt<y3) exists = false;
 		// if ray goes to negative y, intersection must be < y3
-		if (sin(ray.angle*PI/180)<0 && yInt>y3) exists = false;
+		if (sinAngle<0 && yInt>y3) exists = false;
 	}
 	else if (x1!=x2 && x3==x4)
 	{
@@ -129,9 +134,9 @@ void intersection(Ray ray, Wall wall, double &xInt, double &yInt, bool &exists)
 		
 		// check if intersection is in the direction of the ray
 		// if ray goes to positive y, intersection must be > y3
-		if (sin(ray.angle*PI/180)>0 && yInt<y3) exists = false;
+		if (sinAngle>0 && yInt<y3) exists = false;
 		// if ray goes to negative y, intersection must be < y3
-		if (sin(ray.angle*PI/180)<0 && yInt>y3) exists = false;
+		if (sinAngle<0 && yInt>y3) exists = false;
 	}
 	else
 	{
@@ -149,13 +154,13 @@ void intersection(Ray ray, Wall wall, double &xInt, double &yInt, bool &exists)
 			
 			// check if intersection is in the direction of the ray
 			// if ray goes to positive x, intersection must be > x3
-			if (cos(ray.angle*PI/180)>0 && xInt<x3) exists = false;
+			if (cosAngle>0 && xInt<x3) exists = false;
 			// if ray goes to negative x, intersection must be < x3
-			if (cos(ray.angle*PI/180)<0 && xInt>x3) exists = false;
+			if (cosAngle<0 && xInt>x3) exists = false;
 			// if ray goes to positive y, intersection must be > y3
-			if (sin(ray.angle*PI/180)>0 && yInt<y3) exists = false;
+			if (sinAngle>0 && yInt<y3) exists = false;
 			// if ray goes to negative y, intersection must be < y3
-			if (sin(ray.angle*PI/180)<0 && yInt>y3) exists = false;
+			if (sinAngle<0 && yInt>y3) exists = false;
 		}
 	}
 }
@@ -271,6 +276,8 @@ void World::advanceTime(double T, double dt)
 		vector<Boid> boidsOld = boids_;
 		stepRaw(dt);
 		collideWalls(boidsOld);
+		
+		if ((int (t/dt))%4==0) // update neighbour list only once in a while
 		updateNeighbours(boids_, walls_);
 	}
 }

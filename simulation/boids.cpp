@@ -292,10 +292,12 @@ int main(int argc, char **argv)
 			
 			/////////////////////////// Rendering //////////////////////////
 			
+			
 			window.clear(sf::Color::White);
 			world.render(window);
 			//world.renderDebug(window,0,true);
 			window.display();
+			
 		}
 		else
 		{
