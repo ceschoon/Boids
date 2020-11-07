@@ -9,7 +9,6 @@
 
 
 // TODO: bad naming convention (member var shoud be underscored instead)
-// TODO: boid class should be better prepared for inheritance
 // TODO: ? move physical forces in physics class ?
 // TODO: ? add boid-wall repulsive potential ?
 
@@ -42,13 +41,13 @@ class Boid
 		// Force-related Methods
 		
 		void resetForce();
-		void computeBehaviouralForces(const vector<Boid> &boids, const vector<Wall> &walls);
+		virtual void computeBehaviouralForces(const vector<Boid> &boids, const vector<Wall> &walls);
 		void computePhysicalForces(const vector<Boid> &boids, const vector<Wall> &walls);
 		
-		void computeCohesionForce(const vector<Boid> &boids, double &fx_, double &fy_);
-		void computeAlignmentForce(const vector<Boid> &boids, double &fx_, double &fy_);
-		void computeWallAvoidingForce(const vector<Boid> &boids, const vector<Wall> &walls, 
-		                              double &fx_, double &fy_);
+		virtual void computeCohesionForce(const vector<Boid> &boids, double &fx_, double &fy_);
+		virtual void computeAlignmentForce(const vector<Boid> &boids, double &fx_, double &fy_);
+		virtual void computeWallAvoidingForce(const vector<Boid> &boids, const vector<Wall> &walls, 
+		                                      double &fx_, double &fy_);
 		
 		void computeDragForce(const vector<Boid> &boids, double &fx_, double &fy_);
 		void computeSeparationForce(const vector<Boid> &boids, double &fx_, double &fy_);

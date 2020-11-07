@@ -152,7 +152,8 @@ void Boid::computeAlignmentForce(const vector<Boid> &boids, double &fx_, double 
 
 
 
-void Boid::computeWallAvoidingForce(const vector<Boid> &boids, const vector<Wall> &walls,
+void Boid::computeWallAvoidingForce(const vector<Boid> &boids, 
+                                    const vector<Wall> &walls,
                                     double &fx_, double &fy_)
 {
 	bool foundFreeRay = false;

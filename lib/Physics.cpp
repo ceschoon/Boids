@@ -171,6 +171,12 @@ void intersection(Ray ray, Wall wall, double &xInt, double &yInt, bool &exists)
 
 void World::addRandomWall()
 {
+	addRandomWallOnSquareGrid();
+}
+
+
+void World::addRandomWallAnywhere()
+{
 	uniform_real_distribution<double> dist01(0,1);
 	
 	double x1 = sizeX_ * dist01(gen_);
@@ -181,6 +187,7 @@ void World::addRandomWall()
 	Wall wall(x1,y1,x2,y2);
 	walls_.push_back(wall);
 }
+
 
 void World::addRandomWallOnSquareGrid()
 {

@@ -9,7 +9,6 @@
 ////////////////////////////////////////////////////////////////////////////
 
 
-// TODO: prepare for inheritance (e.g. child with custom wall/boid placement)
 
 #ifndef PHYSICS_H
 #define PHYSICS_H
@@ -47,9 +46,10 @@ class World
 		void renderDebug(sf::RenderWindow &window, int i, bool forces=false);
 		
 		// Initialisation
-		void addRandomWall();
+		virtual void placeBoids(vector<Boid> boids);
+		virtual void addRandomWall();
+		void addRandomWallAnywhere();
 		void addRandomWallOnSquareGrid();
-		void placeBoids(vector<Boid> boids);
 		
 		// Time Integration
 		void advanceTime(double T, double dt);
