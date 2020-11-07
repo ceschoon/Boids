@@ -233,9 +233,9 @@ void World::placeBoids(vector<Boid> boids)
 		boids_[i].y = sizeY_*dist01(gen_);
 		boids_[i].vx = vInit*(-0.5+dist01(gen_)); // to avoid problems when superposed
 		boids_[i].vy = vInit*(-0.5+dist01(gen_)); // and to initiate randommly-orientated movement
+		
+		boids_[i].updateNeighbours(boids_, walls_);
 	}
-	
-	updateNeighbours(boids_, walls_);
 }
 
 
@@ -274,11 +274,19 @@ void World::advanceTime(double T, double dt)
 		// Integrate
 		
 		vector<Boid> boidsOld = boids_;
-		stepRaw(dt);
+		for (int i=0; i<boids_.size(); i++) boids_[i].step(dt);
 		collideWalls(boidsOld);
 		
-		if ((int (t/dt))%4==0) // update neighbour list only once in a while
-		updateNeighbours(boids_, walls_);
+		// Update neighbour list (only once in a while)
+		
+		if ((int (t/dt))%4==0)
+		{
+			#pragma omp parallel for
+			for (int i=0; i<boids_.size(); i++)
+			{
+				boids_[i].updateNeighbours(boids_, walls_);
+			}
+		}
 	}
 }
 

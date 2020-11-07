@@ -4,17 +4,14 @@
 //                 Boid classes and related methods                       //
 //                                                                        //
 //    Author: Cédric Schoonen <cedric.schoonen1@gmail.com>                //
-//    September 2019, April 2020                                          //
 //                                                                        //
 ////////////////////////////////////////////////////////////////////////////
 
 
 // TODO: bad naming convention (member var shoud be underscored instead)
-// TODO: member variables should be encapsulated
-
 // TODO: boid class should be better prepared for inheritance
-// TODO: move physical forces in physics class
-// TODO: boid-wall repulsion should be achieved with repulsive potential
+// TODO: ? move physical forces in physics class ?
+// TODO: ? add boid-wall repulsive potential ?
 
 
 #ifndef BOID_H
@@ -36,13 +33,44 @@ class Boid
 		
 		Boid(double x_, double y_, double orientation_, double v_);
 		
+		// Accessor-ish
+		
+		double getPosX() const {return x;}
+		double getPosY() const {return y;}
+		double orientation() const {return angle(0,0,vx,vy);}
+		
+		// Force-related Methods
+		
+		void resetForce();
+		void computeBehaviouralForces(const vector<Boid> &boids, const vector<Wall> &walls);
+		void computePhysicalForces(const vector<Boid> &boids, const vector<Wall> &walls);
+		
+		void computeCohesionForce(const vector<Boid> &boids, double &fx_, double &fy_);
+		void computeAlignmentForce(const vector<Boid> &boids, double &fx_, double &fy_);
+		void computeWallAvoidingForce(const vector<Boid> &boids, const vector<Wall> &walls, 
+		                              double &fx_, double &fy_);
+		
+		void computeDragForce(const vector<Boid> &boids, double &fx_, double &fy_);
+		void computeSeparationForce(const vector<Boid> &boids, double &fx_, double &fy_);
+		
+		// Time evolution
+		void step(double dt);
+		
+		// Neighbour detection
+		
+		bool isNeighbour(int index);
+		void updateNeighbours(const vector<Boid> &boids, const vector<Wall> walls);
+		
 		// state variables
+		// (difficult to encapsulate, cleaner as public)
 		
 		double x,y;
 		double vx,vy;
 		double fx,fy;            // mass=1 (force=acceleration)
 		vector<int> neighbours;
 		
+	protected:
+	
 		// behaviour: affinities to various effects
 		
 		double b;   // cohesion force coefficient:    F_cohesion = -b*r             (behavioural, parallel)
@@ -59,32 +87,10 @@ class Boid
 		double f2;  // amplitude for perpendicular behavioural forces
 		
 		double viewRange;
-		double obstacleRange; // TODO: change the wall avoiding stuff
+		double obstacleRange;
 		double viewAngle;
-		
-		// Accessor-ish
-		
-		double orientation() const {return angle(0,0,vx,vy);}
-		
-		// Force-related Methods
-		
-		void resetForce();
-		void computeBehaviouralForces(const vector<Boid> &boids, const vector<Wall> &walls);
-		void computePhysicalForces(const vector<Boid> &boids, const vector<Wall> &walls);
-		
-		void computeCohesionForce(const vector<Boid> &boids, double &fx_, double &fy_);
-		void computeAlignmentForce(const vector<Boid> &boids, double &fx_, double &fy_);
-		void computeWallAvoidingForce(const vector<Boid> &boids, const vector<Wall> &walls, 
-		                              double &fx_, double &fy_);
-		
-		void computeDragForce(const vector<Boid> &boids, double &fx_, double &fy_);
-		void computeSeparationForce(const vector<Boid> &boids, double &fx_, double &fy_);
 };
 
-
-// Neighbour detection
-bool isNeighbour(int index, Boid boid);
-void updateNeighbours(vector<Boid> &boids, vector<Wall> walls);
 
 
 #endif //BOID_H

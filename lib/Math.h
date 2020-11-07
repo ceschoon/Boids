@@ -4,7 +4,6 @@
 //                   some  mathematical functions                         //
 //                                                                        //
 //    Author: Cédric Schoonen <cedric.schoonen1@gmail.com>                //
-//    September 2019, April 2020                                          //
 //                                                                        //
 ////////////////////////////////////////////////////////////////////////////
 

@@ -112,8 +112,8 @@ void Boid::computeCohesionForce(const vector<Boid> &boids, double &fx_, double &
 	
 	for (int j=0; j<neighbours.size(); j++)
 	{
-		double x3 = boids[neighbours[j]].x;
-		double y3 = boids[neighbours[j]].y;
+		double x3 = boids[neighbours[j]].getPosX();
+		double y3 = boids[neighbours[j]].getPosY();
 		
 		x2 += x3/N;
 		y2 += y3/N;
@@ -238,8 +238,8 @@ void Boid::computeSeparationForce(const vector<Boid> &boids, double &fx_, double
 {
 	for (int j=0; j<neighbours.size(); j++)
 	{
-		double x2 = boids[neighbours[j]].x;
-		double y2 = boids[neighbours[j]].y;
+		double x2 = boids[neighbours[j]].getPosX();
+		double y2 = boids[neighbours[j]].getPosY();
 		double r = distance(x,y,x2,y2);
 		double angle12 = angle(x2,y2,x,y);
 		
@@ -252,14 +252,33 @@ void Boid::computeSeparationForce(const vector<Boid> &boids, double &fx_, double
 
 
 
+
+
+
+//////////////////////////// Time evolution ////////////////////////////////
+
+
+void Boid::step(double dt)
+{
+	x += vx*dt + 0.5*fx*dt*dt;
+	y += vy*dt + 0.5*fy*dt*dt;
+	
+	vx += fx*dt;
+	vy += fy*dt;
+}
+
+
+
+
+
+
+
 /////////////////////// Neighbour tests and updates ////////////////////////
 
 
-
-bool isNeighbour(int index, Boid boid)
+bool Boid::isNeighbour(int index)
 {
 	bool isIt = false;
-	vector<int> neighbours = boid.neighbours;
 	
 	for (int i=0; i<neighbours.size(); i++)
 	{
@@ -275,51 +294,51 @@ bool isNeighbour(int index, Boid boid)
 
 
 
-void updateNeighbours(vector<Boid> &boids, vector<Wall> walls)
+void Boid::updateNeighbours(const vector<Boid> &boids, const vector<Wall> walls)
 {
-	#pragma omp parallel for
-	for (int i=0; i<boids.size(); i++)
+	vector<int> neighboursNew = {};
+	
+	for (int j=0; j<boids.size(); j++)
 	{
-		vector<int> neighbours = {};
+		// check that boid is not current one
+		if (boids[j].getPosX()==x && boids[j].getPosY()==y) continue;
 		
-		for (int j=0; j<boids.size(); j++)
+		double xj = boids[j].getPosX();
+		double yj = boids[j].getPosY();
+		
+		// distance condition
+		double dij = distance(x,y,xj,yj);
+		
+		// visibility condition (angle)
+		double angleij = angle(x,y,xj,yj);
+		
+		// visibility condition (no wall)
+		bool viewObstructed = false;
+		Ray ray(x,y,angleij);
+		
+		for (int k=0; k<walls.size(); k++)
 		{
-			if (i!=j)
+			bool exists;
+			double xInt,yInt;
+			intersection(ray,walls[k],xInt,yInt,exists);
+			
+			if ( exists && distance(x,y,xInt,yInt) < distance(x,y,xj,yj) )
 			{
-				// distance condition
-				double d = distance(boids[i].x,boids[i].y,boids[j].x,boids[j].y);
-				
-				// visibility condition (angle)
-				double angleij = angle(boids[i].x,boids[i].y,boids[j].x,boids[j].y);
-				
-				// visibility condition (no wall)
-				bool viewObstructed = false;
-				Ray ray(boids[i].x,boids[i].y,angleij);
-				
-				for (int k=0; k<walls.size(); k++)
-				{
-					bool exists;
-					double xInt,yInt;
-					intersection(ray,walls[k],xInt,yInt,exists);
-					if (exists && distance(boids[i].x,boids[i].y,xInt,yInt)
-						<distance(boids[i].x,boids[i].y,boids[j].x,boids[j].y)) 
-					{
-						viewObstructed = true;
-						break;
-					}
-				}
-				
-				if (d < boids[i].viewRange && 
-					abs(angleDifference(angleij,boids[i].orientation()))<boids[i].viewAngle &&
-					!viewObstructed)
-				{
-					neighbours.push_back(j);
-				}
+				viewObstructed = true;
+				break;
 			}
 		}
 		
-		boids[i].neighbours = neighbours;
+		// count as neightbour if all conditions met
+		if (dij < viewRange &&
+			abs(angleDifference(angleij,orientation()))<viewAngle &&
+			!viewObstructed)
+		{
+			neighboursNew.push_back(j);
+		}
 	}
+	
+	neighbours = neighboursNew;
 }
 
 

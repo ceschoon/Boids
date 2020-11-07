@@ -5,15 +5,11 @@
 //             (obstacles, forces, time integration,...)                  //
 //                                                                        //
 //    Author: Cédric Schoonen <cedric.schoonen1@gmail.com>                //
-//    September 2019, April 2020                                          //
 //                                                                        //
 ////////////////////////////////////////////////////////////////////////////
 
 
-// TODO: put all the physics inside the world class
 // TODO: prepare for inheritance (e.g. child with custom wall/boid placement)
-// TODO: ? keep pointers to boids instead of making a copy ?
-//       this way the boids can still be manipulated outside of the class
 
 #ifndef PHYSICS_H
 #define PHYSICS_H
