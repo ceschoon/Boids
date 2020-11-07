@@ -14,6 +14,7 @@ CFLAGS = -O3 # -fPIC flag needed if building a shared library
 
 libboids.a : NeuralNetwork.o Math.o Boid.o Physics.o Rendering.o
 	ar rcs $@ $^
+	rm *.o 
 
 NeuralNetwork.o :
 	$(CC) $(CFLAGS) -c NeuralNetwork.cpp
@@ -31,5 +32,5 @@ Rendering.o :
 	$(CC) $(CFLAGS) -c Rendering.cpp
 
 clean :
-	rm *.o *.a
+	rm *.a
 
