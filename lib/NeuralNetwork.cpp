@@ -92,6 +92,8 @@ vector<double> NeuralNetwork::eval(vector<double> sensors)
 		// store computed value
 		outputs[io] = sigmoid(sum);
 	}
+	
+	return outputs;
 }
 
 
