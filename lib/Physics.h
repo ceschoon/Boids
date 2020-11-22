@@ -38,15 +38,16 @@ class World
 		
 		// Accessors
 		int getSeed() {return seed_;}
+		int getNumBoids() {return boids_.size();}
 		Boid getBoid(int i=0);
-		vector<Boid> getBoids() {return boids_;}
+		vector<Boid> getBoids();
 		
 		// Rendering
 		void render(sf::RenderWindow &window);
-		void renderDebug(sf::RenderWindow &window, int i, bool forces=false);
+		void renderDebug(sf::RenderWindow &window, int i, bool doForces=false);
 		
 		// Initialisation
-		virtual void placeBoids(vector<Boid> boids);
+		virtual void placeBoids(vector<Boid*> boids);
 		virtual void addRandomWall();
 		void addRandomWallAnywhere();
 		void addRandomWallOnSquareGrid();
@@ -62,7 +63,7 @@ class World
 		double sizeY_;
 		
 		vector<Wall> walls_;
-		vector<Boid> boids_;
+		vector<Boid*> boids_;
 		
 		int seed_;
 		default_random_engine gen_;

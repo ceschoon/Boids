@@ -62,7 +62,6 @@ class myBoid : public Boid
 	myBoid(double x_, double y_, double orientation_, double v_)
 	: Boid(x_,y_,orientation_,v_)
 	{
-		
 		b = 0.1;             // default = 0.1
 		s = 5.0/180;         // default = 5.0/180
 		w = 25.0/180;        // default = 25.0/180
@@ -77,7 +76,6 @@ class myBoid : public Boid
 		viewRange = 10;      // default = 10
 		obstacleRange = 5;   // default = 5
 		viewAngle = 120;     // default = 120
-		
 	}
 };
 
@@ -192,9 +190,12 @@ int main(int argc, char **argv)
 		catch (...) {cout << "Error reading nBoids option: " << arg << endl;}
 	}
 	
-	myBoid boid(0,0,0,1e-3);
-	vector<Boid> boids(nBoids,boid);
-	world.placeBoids(boids); // TODO: should handle children class of Boid
+	// construct boids and vector of pointers
+	vector<Boid> boids(nBoids, Boid(0,0,0,1e-3));
+	vector<Boid*> boids_ptr(nBoids, NULL);
+	
+	for (int i=0; i<nBoids; i++) boids_ptr[i] = &boids[i];
+	world.placeBoids(boids_ptr);
 	
 	/////////////////////////////// Window /////////////////////////////////
 	

@@ -52,7 +52,15 @@ World::World(double sizeX, double sizeY, int seed)
 
 /////////////////////////////// Accessors //////////////////////////////////
 
-Boid World::getBoid(int i) {return boids_[i];}
+Boid World::getBoid(int i) {return *boids_[i];}
+
+vector<Boid> World::getBoids()
+{
+	vector<Boid> boids(boids_.size(), Boid(0,0,0,0));
+	for (int i=0; i<boids_.size(); i++) boids[i] = *boids_[i];
+	
+	return boids;
+}
 
 
 //////////////////////// World rendering (call) ////////////////////////////
@@ -63,18 +71,18 @@ void World::render(sf::RenderWindow &window)
 	double scaleY = window.getSize().y/sizeY_;
 	
 	renderWalls(window, walls_, scaleX, scaleY);
-	renderBoidsAsTriangles(window, boids_, scaleX, scaleY);
+	renderBoidsAsTriangles(window, getBoids(), scaleX, scaleY);
 }
 
 
-void World::renderDebug(sf::RenderWindow &window, int i, bool forces)
+void World::renderDebug(sf::RenderWindow &window, int i, bool doForces)
 {
 	double scaleX = window.getSize().x/sizeX_;
 	double scaleY = window.getSize().y/sizeY_;
 	
 	renderWalls(window, walls_, scaleX, scaleY);
-	renderBoidsHighlight(window, boids_, scaleX, scaleY, i);
-	if (forces) renderForces(window, boids_, scaleX, scaleY);
+	renderBoidsHighlight(window, getBoids(), scaleX, scaleY, i);
+	if (doForces) renderForces(window, getBoids(), scaleX, scaleY);
 }
 
 ////////////////////////// Wall - Ray mechanics ////////////////////////////
@@ -227,41 +235,27 @@ void World::addRandomWallOnSquareGrid()
 
 
 
-void World::placeBoids(vector<Boid> boids)
+void World::placeBoids(vector<Boid*> boids)
 {
 	double vInit = 1e-5;
 	uniform_real_distribution<double> dist01(0,1);
 	
-	boids_ = boids;
+	for (int i=0; i<boids.size(); i++) boids_.push_back(boids[i]);
 	
 	for (int i=0; i<boids_.size(); i++)
 	{
-		boids_[i].x = sizeX_*dist01(gen_);
-		boids_[i].y = sizeY_*dist01(gen_);
-		boids_[i].vx = vInit*(-0.5+dist01(gen_)); // to avoid problems when superposed
-		boids_[i].vy = vInit*(-0.5+dist01(gen_)); // and to initiate randommly-orientated movement
+		boids_[i]->x = sizeX_*dist01(gen_);
+		boids_[i]->y = sizeY_*dist01(gen_);
+		boids_[i]->vx = vInit*(-0.5+dist01(gen_)); // to avoid problems when superposed
+		boids_[i]->vy = vInit*(-0.5+dist01(gen_)); // and to initiate randommly-orientated movement
 		
-		boids_[i].updateNeighbours(boids_, walls_);
+		boids_[i]->updateNeighbours(getBoids(), walls_);
 	}
 }
 
 
 
 ///////////////////////////// Time Integration /////////////////////////////
-
-
-void World::stepRaw(double dt)
-{
-	#pragma omp parallel for
-	for (int i=0; i<boids_.size(); i++)
-	{
-		boids_[i].x += boids_[i].vx*dt + 0.5*boids_[i].fx*dt*dt;
-		boids_[i].y += boids_[i].vy*dt + 0.5*boids_[i].fy*dt*dt;
-		
-		boids_[i].vx += boids_[i].fx*dt;
-		boids_[i].vy += boids_[i].fy*dt;
-	}
-}
 
 
 void World::advanceTime(double T, double dt)
@@ -273,15 +267,15 @@ void World::advanceTime(double T, double dt)
 		#pragma omp parallel for
 		for (int i=0; i<boids_.size(); i++)
 		{
-			boids_[i].resetForce();
-			boids_[i].computePhysicalForces(boids_, walls_);
-			boids_[i].computeBehaviouralForces(boids_, walls_);
+			boids_[i]->resetForce();
+			boids_[i]->computePhysicalForces(getBoids(), walls_);
+			boids_[i]->computeBehaviouralForces(getBoids(), walls_);
 		}
 		
 		// Integrate
 		
-		vector<Boid> boidsOld = boids_;
-		for (int i=0; i<boids_.size(); i++) boids_[i].step(dt);
+		vector<Boid> boidsOld = getBoids();
+		for (int i=0; i<boids_.size(); i++) boids_[i]->step(dt);
 		collideWalls(boidsOld);
 		
 		// Update neighbour list (only once in a while)
@@ -291,7 +285,7 @@ void World::advanceTime(double T, double dt)
 			#pragma omp parallel for
 			for (int i=0; i<boids_.size(); i++)
 			{
-				boids_[i].updateNeighbours(boids_, walls_);
+				boids_[i]->updateNeighbours(getBoids(), walls_);
 			}
 		}
 	}
@@ -311,8 +305,8 @@ void World::collideWalls(const vector<Boid> &boidsOld)
 			double y2 = walls_[j].y2;
 			double x3 = boidsOld[i].x;
 			double y3 = boidsOld[i].y;
-			double x4 = boids_[i].x;
-			double y4 = boids_[i].y;
+			double x4 = boids_[i]->x;
+			double y4 = boids_[i]->y;
 			
 			// Use Ray-Wall intersection code to detect collision
 			
@@ -331,22 +325,22 @@ void World::collideWalls(const vector<Boid> &boidsOld)
 			{
 				// mirror velocities
 				
-				double vx = (boidsOld[i].vx+boids_[i].vx)/2;
-				double vy = (boidsOld[i].vy+boids_[i].vy)/2;
+				double vx = (boidsOld[i].vx+boids_[i]->vx)/2;
+				double vy = (boidsOld[i].vy+boids_[i]->vy)/2;
 				double V = sqrt(vx*vx+vy*vy);
 				double angleV = angle(0,0,vx,vy);
 				double angle12 = angle(x1,y1,x2,y2);
 				
 				double angleVMirror = 2*angle12-angleV;
-				boids_[i].vx = V*cos(angleVMirror*PI/180);
-				boids_[i].vy = V*sin(angleVMirror*PI/180);
+				boids_[i]->vx = V*cos(angleVMirror*PI/180);
+				boids_[i]->vy = V*sin(angleVMirror*PI/180);
 				
 				// mirror positions
 				
 				double angle34Mirror = 2*angle12-angle34;
 				double dInt4 = d34-d3Int;
-				boids_[i].x = xInt + dInt4*cos(angle34Mirror*PI/180);
-				boids_[i].y = yInt + dInt4*sin(angle34Mirror*PI/180);
+				boids_[i]->x = xInt + dInt4*cos(angle34Mirror*PI/180);
+				boids_[i]->y = yInt + dInt4*sin(angle34Mirror*PI/180);
 			}
 		}
 	}

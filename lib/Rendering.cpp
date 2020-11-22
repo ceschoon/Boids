@@ -27,7 +27,7 @@ void renderBoidsHighlight(sf::RenderWindow &window, vector<Boid> boids, double s
 	sf::CircleShape triangle(1,3);
 	triangle.setScale(0.5*scaleX*0.3,1*scaleY*0.3);
 	triangle.setOrigin(1,1);
-
+	
 	for (int i=0; i<boids.size(); i++)
 	{
 		if (i==indexToHighlight) triangle.setFillColor(sf::Color::Red);

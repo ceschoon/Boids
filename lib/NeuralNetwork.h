@@ -15,8 +15,8 @@ class NeuralNetwork
 {
 	public:
 		
-		NeuralNetwork(int Ns=5, int Nl=2, int Np=5, int seed=-1)
-		: Ns_(Ns), Nl_(Nl), Np_(Np)
+		NeuralNetwork(int Ns=5, int Nl=2, int Np=5, int No=2, int seed=-1)
+		: Ns_(Ns), Nl_(Nl), Np_(Np), No_(No)
 		{
 			// construct default weights and biases
 			

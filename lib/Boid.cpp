@@ -277,7 +277,7 @@ void Boid::step(double dt)
 /////////////////////// Neighbour tests and updates ////////////////////////
 
 
-bool Boid::isNeighbour(int index)
+bool Boid::isNeighbour (int index) const
 {
 	bool isIt = false;
 	

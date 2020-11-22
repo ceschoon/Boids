@@ -57,7 +57,7 @@ class Boid
 		
 		// Neighbour detection
 		
-		bool isNeighbour(int index);
+		bool isNeighbour (int index) const;
 		void updateNeighbours(const vector<Boid> &boids, const vector<Wall> walls);
 		
 		// state variables
