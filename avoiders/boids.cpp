@@ -13,6 +13,9 @@
 ////////////////////////////////////////////////////////////////////////////
 
 
+// Fun seed: -81844232
+
+
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include <thread>
@@ -31,7 +34,6 @@ using namespace std::chrono;
 void info(Boid boid);
 
 
-
 class BoidNN : public Boid
 {
 	public: 
@@ -39,6 +41,8 @@ class BoidNN : public Boid
 	BoidNN(double x_, double y_, double orientation_, double v_)
 	: Boid(x_,y_,orientation_,v_)
 	{
+		// Parameters from parent class
+		
 		b = 0.1;             // default = 0.1
 		s = 1.0/180;         // default = 5.0/180
 		w = 25.0/180;        // default = 25.0/180
@@ -53,23 +57,67 @@ class BoidNN : public Boid
 		viewRange = 10;      // default = 10
 		obstacleRange = 5;   // default = 5
 		viewAngle = 120;     // default = 120
+		
+		// Initialisations of attributes
+		
+		targetX_ = 0.0;
+		targetY_ = 0.0;
+		
+		sensors_ = vector<double>(4,0);
 	}
 	
+	void setTarget(double x, double y) {targetX_=x; targetY_=y;}
+	
 	void setNNetwork(NeuralNetwork *nnetwork) {nnetwork_ = nnetwork;}
+	
+	virtual void computeSensorialInput(const vector<Boid> &boids, const vector<Wall> &walls)
+	{
+		// First sensor is a measure of how close the boid points to its 
+		// target. We use the cosine of the angle it makes with the target.
+		
+		double angleWithTarget = angle(x,y,targetX_,targetY_) - orientation();
+		sensors_[0] = cos(angleWithTarget);
+		
+		// The next N sensors are the distance to the first intersection
+		// between a wall and rays covering the field of view of the boid.
+		
+		int N=3;
+		for (int i=0; i<N; i++)
+		{
+			// construct ray
+			
+			double raySpan = 2*viewAngle/N;
+			double rayRelAngle = i*raySpan - viewAngle + raySpan/2;
+			
+			Ray ray(x,y,orientation()+rayRelAngle);
+			
+			// find closest intersection with wall
+			
+			double distMin = obstacleRange;
+			for (Wall wall : walls)
+			{
+				bool exists;
+				double xInt,yInt; intersection(ray,wall,xInt,yInt,exists);
+				double distInt = distance(x,y,xInt,yInt);
+				
+				if (exists && distInt<distMin) distMin = distInt;
+			}
+			
+			// assign sensor value from distance to intersection
+			
+			sensors_[i] = 2*distMin/obstacleRange - 1;
+		}
+	}
 	
 	virtual void computeBehaviouralForces(const vector<Boid> &boids, const vector<Wall> &walls)
 	{
 		// compute values of sensors
 		
-		vector<double> nnsensors(4,0);
-		
-		// TODO: compute sensors (between -1 and 1)
-		// Sensors list: [1] cos(angle with destination)
-		//               [N=3 (5?)] for several rays in fov: 1-2*dist2obstacle/viewdist
+		computeSensorialInput(boids, walls);
 		
 		// compute neural network prediction
 		
-		vector<double> nnoutput = nnetwork_->eval(nnsensors);
+		vector<double> nnoutput = nnetwork_->eval(sensors_);
 		
 		double f1_ = f + f1*nnoutput[0];   // parallel component
 		double f2_ = f2*nnoutput[1];       // perpendicular component
@@ -79,6 +127,13 @@ class BoidNN : public Boid
 		fx += f1_*cos(orientation()/180*PI) - f2_*sin(orientation()/180*PI);
 		fy += f1_*sin(orientation()/180*PI) + f2_*cos(orientation()/180*PI);
 	}
+	
+	protected:
+	
+	double targetX_;
+	double targetY_;
+	
+	vector<double> sensors_;
 	
 	NeuralNetwork *nnetwork_;
 };
@@ -211,6 +266,11 @@ int main(int argc, char **argv)
 	
 	world.placeBoids(boids_ptr);
 	
+	////////////////////////// Experimentation /////////////////////////////
+	
+	// TODO: temporary section
+	
+	//boids[0].computeSensorialInput(boids,world.getWalls());
 	
 	/////////////////////////////// Window /////////////////////////////////
 	
