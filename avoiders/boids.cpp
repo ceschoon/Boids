@@ -13,9 +13,6 @@
 ////////////////////////////////////////////////////////////////////////////
 
 
-// Fun seed: -81844232
-
-
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include <thread>

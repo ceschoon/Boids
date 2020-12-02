@@ -4,6 +4,9 @@
 #
 # There are dependencies from SFML that must be linked with this library:
 # -lsfml-graphics -lsfml-window -lsfml-system
+#
+# There are also dependencies from Boost:
+# -lboost_serialization
 
 CC = g++
 CFLAGS = -O3 # -fPIC flag needed if building a shared library
