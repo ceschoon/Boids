@@ -240,12 +240,6 @@ int main(int argc, char **argv)
 	NeuralNetwork nnetwork(6,2,5,2);
 	nnetwork.initRandom();
 	
-	// TODO test 
-	// Note: cannot compile with these lines -> WHAT THE HELL IS WRONG ??
-	ifstream ifs("nnetwork.dat");
-	boost::archive::text_iarchive ia(ifs);
-	ia >> nnetwork;
-	
 	/////////////////////////// Boid placement /////////////////////////////
 	
 	// try to use a specified number of boids if given in arguments
@@ -274,10 +268,6 @@ int main(int argc, char **argv)
 	// TODO: temporary section
 	
 	//boids[0].computeSensorialInput(boids,world.getWalls());
-	
-	ofstream ofs("nnetwork.dat");
-	boost::archive::text_oarchive oa(ofs);
-	oa << nnetwork;
 	
 	/////////////////////////////// Window /////////////////////////////////
 	
