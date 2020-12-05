@@ -270,7 +270,8 @@ int main(int argc, char **argv)
 	
 	// TODO: temporary section
 	
-	//boids[0].computeSensorialInput(boids,world.getWalls());
+	nnetwork.saveToFile("nnetwork.dat");
+	nnetwork.loadFromFile("nnetwork.dat");
 	
 	/////////////////////////////// Window /////////////////////////////////
 	

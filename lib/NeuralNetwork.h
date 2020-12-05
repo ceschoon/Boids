@@ -59,6 +59,9 @@ class NeuralNetwork
 		vector<double> getAllWeights() {return w_;}
 		vector<double> getAllBiases() {return b_;}
 		
+		int saveToFile(string filename);
+		int loadFromFile(string filename);
+		
 	protected:
 		
 		int Ns_; // number of sensors

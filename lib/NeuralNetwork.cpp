@@ -1,5 +1,8 @@
 #include <cmath>
 #include <exception>
+#include <fstream>
+#include <iomanip>
+#include <string>
 
 #include "NeuralNetwork.h"
 
@@ -145,4 +148,76 @@ double NeuralNetwork::getBias(int il, int i)
 }
 
 
+
+
+int NeuralNetwork::saveToFile(string filename)
+{
+	try
+	{
+		ofstream outFile(filename);
+		if (!outFile) 
+		{
+			cout << "NeuralNetwork: Cannot open file " << filename << endl;
+			return 1;
+		}
+		
+		// First save the parameters on network dimensions
+		outFile << Ns_ << endl;
+		outFile << Nl_ << endl;
+		outFile << Np_ << endl;
+		outFile << No_ << endl;
+		
+		// Then save the weights and biases vectors
+		outFile << fixed << setprecision(8);
+		for (double w : w_) outFile << setw(16) << w << endl;
+		for (double b : b_) outFile << setw(16) << b << endl;
+	}
+	catch(...)
+	{
+		cout << "NeuralNetwork: Caught unexpected error while saving to file" << endl;
+		return 2;
+	}
+	
+	return 0; // everything alright
+}
+
+
+
+
+int NeuralNetwork::loadFromFile(string filename)
+{
+	try
+	{
+		ifstream inFile(filename);
+		if (!inFile) 
+		{
+			cout << "NeuralNetwork: Cannot open file " << filename << endl;
+			return 1;
+		}
+		
+		// First read the parameters on network dimensions
+		string line; 
+		getline(inFile, line); Ns_ = stoi(line);
+		getline(inFile, line); Nl_ = stoi(line);
+		getline(inFile, line); Np_ = stoi(line);
+		getline(inFile, line); No_ = stoi(line);
+		
+		// Initialise weights and biases vectors
+		int Nweights = Ns_*Np_ + Np_*Np_*(Nl_-1) + Np_*No_;
+		int Nbiases = Np_*Nl_ + No_;
+		w_ = vector<double>(Nweights,0);
+		b_ = vector<double>(Nbiases,0);
+		
+		// Read the weights and biases vectors
+		for (int i=0; i<Nweights; i++) {getline(inFile, line); w_[i] = stoi(line);}
+		for (int i=0; i<Nbiases;  i++) {getline(inFile, line); b_[i] = stoi(line);}
+	}
+	catch(...)
+	{
+		cout << "NeuralNetwork: Caught unexpected error while loading from file" << endl;
+		return 2;
+	}
+	
+	return 0; // everything alright
+}
 
