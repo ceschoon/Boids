@@ -3,13 +3,8 @@
 
 
 #include <iostream>
-#include <fstream>
 #include <vector>
 #include <random>
-
-#include <boost/archive/text_oarchive.hpp>
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/serialization/vector.hpp>
 
 
 using namespace std;
@@ -64,51 +59,8 @@ class NeuralNetwork
 		vector<double> getAllWeights() {return w_;}
 		vector<double> getAllBiases() {return b_;}
 		
-		friend class boost::serialization::access;
-		template<class Archive> 
-		void serialise(Archive & ar, const unsigned int version) const
-		{
-			ar & Ns_;
-			ar & Nl_;
-			ar & Np_;
-			ar & No_;
-			
-			ar & w_;
-			ar & b_;
-		}
-		
-		// storage in file
-		/*
-		friend class boost::serialization::access;
-		template<class Archive> 
-		void save(Archive & ar, const unsigned int version) const
-		{
-			ar & Ns_;
-			ar & Nl_;
-			ar & Np_;
-			ar & No_;
-			
-			ar & w_;
-			ar & b_;
-		}
-		
-		// load from file
-		template<class Archive> 
-		void load(Archive & ar, const unsigned int version)
-		{
-			ar & Ns_;
-			ar & Nl_;
-			ar & Np_;
-			ar & No_;
-			
-			ar & w_;
-			ar & b_;
-		}
-		*/
-		
 	protected:
 		
-		// network properties
 		int Ns_; // number of sensors
 		int Nl_; // number of neuron layers
 		int Np_; // number of neurons per layer
