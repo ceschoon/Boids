@@ -3,4 +3,5 @@ lib/*.a
 lib/*.so
 
 simulation/boids
-
+avoiders/boids
+avoiders/*.dat

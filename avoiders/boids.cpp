@@ -13,16 +13,15 @@
 ////////////////////////////////////////////////////////////////////////////
 
 
-// Fun seed: -81844232
-
-
 #include <SFML/Graphics.hpp>
 #include <iostream>
+#include <iomanip>
 #include <thread>
 #include <chrono>
+#include <string>
 
 #include "Math.h"
-#include "Boid.h"
+#include "BoidNN.h"
 #include "Physics.h"
 #include "Rendering.h"
 #include "NeuralNetwork.h"
@@ -31,114 +30,28 @@ using namespace std;
 using namespace std::chrono;
 
 
-void info(Boid boid);
-
-
-class BoidNN : public Boid
+struct NNParams
 {
-	public: 
+	double noiseMean;
+	double noiseStd;
 	
-	BoidNN(double x_, double y_, double orientation_, double v_)
-	: Boid(x_,y_,orientation_,v_)
-	{
-		// Parameters from parent class
-		
-		b = 0.1;             // default = 0.1
-		s = 1.0/180;         // default = 5.0/180
-		w = 25.0/180;        // default = 25.0/180
-		
-		a = 1;               // default = 1
-		c = 1;               // default = 1
-		
-		f = 10;              // default = 10
-		f1 = 10;             // default = 10
-		f2 = 50;             // default = 10 or 50
-		
-		viewRange = 10;      // default = 10
-		obstacleRange = 5;   // default = 5
-		viewAngle = 120;     // default = 120
-		
-		// Initialisations of attributes
-		
-		targetX_ = 0.0;
-		targetY_ = 0.0;
-		
-		sensors_ = vector<double>(4,0);
-	}
-	
-	void setTarget(double x, double y) {targetX_=x; targetY_=y;}
-	
-	void setNNetwork(NeuralNetwork *nnetwork) {nnetwork_ = nnetwork;}
-	
-	virtual void computeSensorialInput(const vector<Boid> &boids, const vector<Wall> &walls)
-	{
-		// First sensor is a measure of how close the boid points to its 
-		// target. We use the cosine of the angle it makes with the target.
-		
-		double angleWithTarget = angle(x,y,targetX_,targetY_) - orientation();
-		sensors_[0] = cos(angleWithTarget);
-		
-		// The next N sensors are the distance to the first intersection
-		// between a wall and rays covering the field of view of the boid.
-		
-		int N=3;
-		for (int i=0; i<N; i++)
-		{
-			// construct ray
-			
-			double raySpan = 2*viewAngle/N;
-			double rayRelAngle = i*raySpan - viewAngle + raySpan/2;
-			
-			Ray ray(x,y,orientation()+rayRelAngle);
-			
-			// find closest intersection with wall
-			
-			double distMin = obstacleRange;
-			for (Wall wall : walls)
-			{
-				bool exists;
-				double xInt,yInt; intersection(ray,wall,xInt,yInt,exists);
-				double distInt = distance(x,y,xInt,yInt);
-				
-				if (exists && distInt<distMin) distMin = distInt;
-			}
-			
-			// assign sensor value from distance to intersection
-			
-			sensors_[i] = 2*distMin/obstacleRange - 1;
-		}
-	}
-	
-	virtual void computeBehaviouralForces(const vector<Boid> &boids, const vector<Wall> &walls)
-	{
-		// compute values of sensors
-		
-		computeSensorialInput(boids, walls);
-		
-		// compute neural network prediction
-		
-		vector<double> nnoutput = nnetwork_->eval(sensors_);
-		
-		double f1_ = f + f1*nnoutput[0];   // parallel component
-		double f2_ = f2*nnoutput[1];       // perpendicular component
-		
-		// update the Boid forces in the fixed xy-frame
-		
-		fx += f1_*cos(orientation()/180*PI) - f2_*sin(orientation()/180*PI);
-		fy += f1_*sin(orientation()/180*PI) + f2_*cos(orientation()/180*PI);
-	}
-	
-	protected:
-	
-	double targetX_;
-	double targetY_;
-	
-	vector<double> sensors_;
-	
-	NeuralNetwork *nnetwork_;
+	string filename;
 };
 
 
+struct WorldParams
+{
+	int seed;
+	int nBoids;
+	
+	double sizeX;
+	double sizeY;
+	double avgWalls;
+};
+
+
+void run_generation(sf::RenderWindow &window, NNParams pnn, WorldParams pworld, int numGen);
+void renderGenerationInfo(sf::RenderWindow &window, int numGen);
 
 
 int main(int argc, char **argv)
@@ -196,7 +109,6 @@ int main(int argc, char **argv)
 	}
 	
 	cout << "seed = " << seed << endl;
-	default_random_engine gen(seed);
 	
 	
 	///////////////////////////// World Creation ///////////////////////////
@@ -218,9 +130,6 @@ int main(int argc, char **argv)
 		catch (...) {cout << "Error reading boxSizeX option: " << arg << endl;}
 	}
 	
-	// create world
-	World world(30,30,seed);
-	
 	// try to use a specified average number walls if given in arguments
 	double avgWalls = 4;
 	for (int i=0; i<argc; i++) if (string(argv[i]).substr(0,11)=="--avgWalls=")
@@ -230,48 +139,27 @@ int main(int argc, char **argv)
 		catch (...) {cout << "Error reading avgWalls option: " << arg << endl;}
 	}
 	
-	// randomly place walls
-	
-	poisson_distribution<int> dist(avgWalls);
-	int numWalls = dist(gen);
-	
-	for (int i=0; i<numWalls; i++) world.addRandomWallOnSquareGrid();
-	
 	
 	//////////////////////////// Neural Network ////////////////////////////
 	
-	NeuralNetwork nnetwork(6,2,5,2);
+	// Base NN
+	
+	NeuralNetwork nnetwork(6,2,5,2,seed);
 	nnetwork.initRandom();
+	
+	string nnfilename = "nnetwork.dat";
+	nnetwork.saveToFile(nnfilename);
 	
 	/////////////////////////// Boid placement /////////////////////////////
 	
 	// try to use a specified number of boids if given in arguments
-	int nBoids = 1;
+	int nBoids = 10;
 	for (int i=0; i<argc; i++) if (string(argv[i]).substr(0,9)=="--nBoids=")
 	{
 		string arg = argv[i];
 		try {nBoids = stoi(arg.substr(9,arg.size()-9));}
 		catch (...) {cout << "Error reading nBoids option: " << arg << endl;}
 	}
-	
-	// construct boids and vector of pointers
-	vector<BoidNN> boids(nBoids, BoidNN(0,0,0,1e-3));
-	vector<Boid*> boids_ptr(nBoids, NULL);
-	
-	for (int i=0; i<nBoids; i++) 
-	{
-		boids[i].setNNetwork(&nnetwork);
-		boids_ptr[i] = &boids[i];
-	}
-	
-	world.placeBoids(boids_ptr);
-	
-	////////////////////////// Experimentation /////////////////////////////
-	
-	// TODO: temporary section
-	
-	nnetwork.saveToFile("nnetwork.dat");
-	nnetwork.loadFromFile("nnetwork.dat");
 	
 	/////////////////////////////// Window /////////////////////////////////
 	
@@ -295,6 +183,53 @@ int main(int argc, char **argv)
 	sf::RenderWindow window(sf::VideoMode(windowSizeX,windowSizeY),"Boids - Avoiders");
 	
 	window.setFramerateLimit(30);
+	
+	// create neural network and world parameter structures
+	
+	struct NNParams pnn = {0.0, 0.5, nnfilename};
+	struct WorldParams pworld = {seed, nBoids, boxSizeX, boxSizeY, avgWalls};
+	
+	// call simulation for first generation
+	
+	int numGen = 1; 
+	run_generation(window, pnn, pworld, numGen);
+	
+	return 0;
+}
+
+
+
+
+void run_generation(sf::RenderWindow &window, NNParams pnn, 
+                    WorldParams pworld, int numGen)
+{
+	// Create world and add walls
+	
+	World world(pworld.sizeX,pworld.sizeY,pworld.seed);
+	
+	default_random_engine gen(pworld.seed);
+	poisson_distribution<int> dist(pworld.avgWalls);
+	int numWalls = dist(gen);
+	
+	for (int i=0; i<numWalls; i++) world.addRandomWallOnSquareGrid();
+	
+	// Construct boids and vector of pointers
+	
+	vector<NeuralNetwork> nnetworks(pworld.nBoids, NeuralNetwork(0,0,0,0,pworld.seed));
+	vector<BoidNN> boids(pworld.nBoids, BoidNN(0,0,0,1e-3));
+	vector<Boid*> boids_ptr(pworld.nBoids, NULL);
+	
+	for (int i=0; i<pworld.nBoids; i++) 
+	{
+		nnetworks[i].loadFromFile(pnn.filename);
+		nnetworks[i].perturbWeights(pnn.noiseMean, pnn.noiseStd);
+		nnetworks[i].perturbBiases(pnn.noiseMean, pnn.noiseStd);
+		
+		boids[i].setNNetwork(&nnetworks[i]);
+		boids_ptr[i] = &boids[i];
+	}
+	
+	world.placeBoids(boids_ptr);
 	
 	////////////////////////////// Main Loop ///////////////////////////////
 	
@@ -363,19 +298,13 @@ int main(int argc, char **argv)
 			world.advanceTime(time_world,dt);
 			t += time_world;
 			
-			//// debug info
-			//vector<Boid> bboids = world.getBoids();
-			//cout << "got nBoids = " << world.getNumBoids() << endl;
-			//info(bboids[0]);
-			//Boid boid = world.getBoid(0);
-			//info(boid);
-			
 			/////////////////////////// Rendering //////////////////////////
 			
 			
 			window.clear(sf::Color::White);
 			world.render(window);
 			//world.renderDebug(window,0,true);
+			renderGenerationInfo(window, numGen);
 			window.display();
 			
 		}
@@ -387,24 +316,27 @@ int main(int argc, char **argv)
 			lastFrame = steady_clock::now();
 		}
 	}
-	
-	return 0;
 }
 
 
 
 
-void info(Boid boid)
+void renderGenerationInfo(sf::RenderWindow &window, int numGen)
 {
-	double v2 = boid.vx*boid.vx + boid.vy*boid.vy;
-	double f2 = boid.fx*boid.fx + boid.fy*boid.fy;
+	sf::Text text;
+	stringstream sstr; sstr << "Gen " << numGen << endl;
 	
-	cout << "Info boid 0: "
-	     << "x = " << boid.x << " "
-	     << "y = " << boid.y << " "
-	     << "|v| = " << sqrt(v2) << " "
-	     << "|f| = " << sqrt(f2) << " "
-	     << endl;
+	sf::Font font; font.loadFromFile("resources/fonts/NotoSans-Bold.ttf");
+	
+	text.setFont(font);
+	text.setString(sstr.str());
+	text.setCharacterSize(20);
+	text.setFillColor(sf::Color::Red);
+	text.setPosition(sf::Vector2f(5,0));
+	
+	window.draw(text);
 }
+
+
 
 
