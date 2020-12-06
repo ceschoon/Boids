@@ -13,6 +13,10 @@
 ////////////////////////////////////////////////////////////////////////////
 
 
+// TODO: place the target away for the boid's initial position
+// TODO: ? network statistics for monitoring ?
+
+
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include <iomanip>
@@ -25,7 +29,6 @@
 #include "Physics.h"
 #include "Rendering.h"
 #include "NeuralNetwork.h"
-
 #include "myoptions.h"
 
 using namespace std;
@@ -52,7 +55,7 @@ struct WorldParams
 };
 
 
-void run_generation(sf::RenderWindow &window, NNParams pnn, WorldParams pworld, int numGen);
+void run_generation(sf::RenderWindow &window, NNParams pnn, WorldParams pworld, int numGen, double simTime);
 void renderGenerationInfo(sf::RenderWindow &window, int numGen);
 
 
@@ -85,6 +88,8 @@ int main(int argc, char **argv)
 		cout << "          boxSizeY        double           size of the box              " << endl;
 		cout << "          windowSizeX     int              size of the window           " << endl;
 		cout << "          windowSizeY     int              size of the window           " << endl;
+		cout << "          simTime         double           simulation time for one gen  " << endl;
+		cout << "          noiseStd        double           noise std on copies of nn    " << endl;
 		cout << endl;
 		cout << "Controls:   Press Space to pause the simulation   " << endl;
 		cout << "            Press S to slow down the simulation   " << endl;
@@ -128,13 +133,22 @@ int main(int argc, char **argv)
 	
 	// Create neural network and world parameter structures
 	
-	struct NNParams pnn = {0.0, 0.5, nnfilename};
+	double noiseStd = 0.05; readOption(argc, argv, "noiseStd", noiseStd);
+	
+	struct NNParams pnn = {0.0, noiseStd, nnfilename};
 	struct WorldParams pworld = {seed, nBoids, boxSizeX, boxSizeY, avgWalls};
 	
 	// Call simulation for first generation
 	
-	int numGen = 1; 
-	run_generation(window, pnn, pworld, numGen);
+	int numGen = 1;
+	double simTime = 60; readOption(argc, argv, "simTime", simTime);
+	
+	while (window.isOpen())
+	{
+		run_generation(window, pnn, pworld, numGen, simTime);
+		numGen ++;
+		pworld.seed = pworld.seed + 1;
+	}
 	
 	return 0;
 }
@@ -143,8 +157,10 @@ int main(int argc, char **argv)
 
 
 void run_generation(sf::RenderWindow &window, NNParams pnn, 
-                    WorldParams pworld, int numGen)
+                    WorldParams pworld, int numGen, double simTime)
 {
+	//////////////////////////// Initialisation ////////////////////////////
+	
 	// Create world and add walls
 	
 	World world(pworld.sizeX,pworld.sizeY,pworld.seed);
@@ -157,21 +173,37 @@ void run_generation(sf::RenderWindow &window, NNParams pnn,
 	
 	// Construct boids and vector of pointers
 	
-	vector<NeuralNetwork> nnetworks(pworld.nBoids, NeuralNetwork(0,0,0,0,pworld.seed));
 	vector<BoidNN> boids(pworld.nBoids, BoidNN(0,0,0,1e-3));
 	vector<Boid*> boids_ptr(pworld.nBoids, NULL);
 	
+	for (int i=0; i<pworld.nBoids; i++) boids_ptr[i] = &boids[i];
+	world.placeBoids(boids_ptr);
+	
+	// Contruct neural networks for boids
+	
+	NeuralNetwork nnbase(0,0,0,0,pworld.seed);
+	nnbase.loadFromFile(pnn.filename);
+	vector<NeuralNetwork> nnetworks(pworld.nBoids, nnbase);
+	
 	for (int i=0; i<pworld.nBoids; i++) 
 	{
-		nnetworks[i].loadFromFile(pnn.filename);
 		nnetworks[i].perturbWeights(pnn.noiseMean, pnn.noiseStd);
 		nnetworks[i].perturbBiases(pnn.noiseMean, pnn.noiseStd);
 		
 		boids[i].setNNetwork(&nnetworks[i]);
-		boids_ptr[i] = &boids[i];
 	}
 	
-	world.placeBoids(boids_ptr);
+	// Assign random targets for boids
+	
+	uniform_real_distribution<double> dist01(0,1);
+	
+	for (int i=0; i<pworld.nBoids; i++) 
+	{
+		double x = dist01(gen)*pworld.sizeX;
+		double y = dist01(gen)*pworld.sizeY;
+		
+		boids[i].setTarget(x,y);
+	}
 	
 	////////////////////////////// Main Loop ///////////////////////////////
 	
@@ -186,7 +218,7 @@ void run_generation(sf::RenderWindow &window, NNParams pnn,
 	
 	steady_clock::time_point lastFrame = steady_clock::now();
 	
-	while (window.isOpen())
+	while (window.isOpen() && t<simTime)
 	{
 		///////////////////////// Event Handling ///////////////////////////
 		
@@ -240,6 +272,12 @@ void run_generation(sf::RenderWindow &window, NNParams pnn,
 			world.advanceTime(time_world,dt);
 			t += time_world;
 			
+			// boid target detection and increment chronometer
+			// TODO: should do the detection at each step, not just after
+			//       the time evolution of world class. 
+			//       But is it really a problem?
+			for (int i=0; i<boids.size(); i++) boids[i].detectTarget(time_world,0.1);
+			
 			/////////////////////////// Rendering //////////////////////////
 			
 			
@@ -258,6 +296,37 @@ void run_generation(sf::RenderWindow &window, NNParams pnn,
 			lastFrame = steady_clock::now();
 		}
 	}
+	
+	/////////////////////// Selection of the fittest ///////////////////////
+	
+	// Detect fittest
+	
+	int fittest = 0;
+	double bestTime = boids[0].detectTarget(0.0);
+	
+	for (int i=0; i<boids.size(); i++)
+	{
+		double time = boids[i].detectTarget(0.0);
+		
+		if (bestTime<0 || (time<bestTime && time>0))
+		{
+			fittest = i;
+			bestTime = boids[i].detectTarget(0.0);
+		}
+	}
+	
+	// Debug info
+	
+	cout << "----------------------------------------------------" << endl;
+	cout << "Generation " << numGen << ": best time is " << bestTime << endl,
+	
+	cout << "All times are ";
+	for (int i=0; i<boids.size(); i++) cout << boids[i].detectTarget(0.0) << " ";
+	cout << endl;
+	
+	// Save best neural network
+	
+	nnetworks[fittest].saveToFile(pnn.filename);
 }
 
 
