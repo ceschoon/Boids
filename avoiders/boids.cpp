@@ -26,6 +26,8 @@
 #include "Rendering.h"
 #include "NeuralNetwork.h"
 
+#include "myoptions.h"
+
 using namespace std;
 using namespace std::chrono;
 
@@ -56,11 +58,10 @@ void renderGenerationInfo(sf::RenderWindow &window, int numGen);
 
 int main(int argc, char **argv)
 {
-	/////////////////////////////// Version ////////////////////////////////
+	// Version
 	
 	string versionCode = "1.0.0";
-	
-	for (int i=0; i<argc; i++) if (string(argv[i]).substr(0,9)=="--version")
+	if (detectOption(argc, argv, "version"))
 	{
 		cout << "Boids Avoiders, version " << versionCode << endl;
 		cout << endl;
@@ -68,10 +69,9 @@ int main(int argc, char **argv)
 		return 0;
 	}
 	
+	// Help
 	
-	//////////////////////////////// Help //////////////////////////////////
-	
-	for (int i=0; i<argc; i++) if (string(argv[i]).substr(0,6)=="--help")
+	if (detectOption(argc, argv, "help"))
 	{
 		cout << "Usage: ./boids --<option name>=<option value>" << endl;
 		cout << endl;
@@ -94,55 +94,23 @@ int main(int argc, char **argv)
 		return 0;
 	}
 	
-	
-	////////////////////////////// Randomness //////////////////////////////
+	// Random number generation
 	
 	random_device true_gen;
 	int seed = true_gen();
 	
-	// try to use a specified seed if given in arguments
-	for (int i=0; i<argc; i++) if (string(argv[i]).substr(0,7)=="--seed=")
-	{
-		string arg = argv[i];
-		try {seed = stoi(arg.substr(7,arg.size()-7));}
-		catch (...) {cout << "Error reading seed option: " << arg << endl;}
-	}
-	
+	readOption(argc, argv, "seed", seed);
 	cout << "seed = " << seed << endl;
 	
+	// World Creation
 	
-	///////////////////////////// World Creation ///////////////////////////
+	int nBoids = 10; readOption(argc, argv, "nBoids", nBoids);
 	
-	double boxSizeX = 30;
-	double boxSizeY = 30;
+	double boxSizeX = 30; readOption(argc, argv, "boxSizeX", boxSizeX);
+	double boxSizeY = 30; readOption(argc, argv, "boxSizeY", boxSizeY);
+	double avgWalls = 4;  readOption(argc, argv, "avgWalls", avgWalls);
 	
-	// try to use a specified box size if given in arguments
-	for (int i=0; i<argc; i++) if (string(argv[i]).substr(0,11)=="--boxSizeX=")
-	{
-		string arg = argv[i];
-		try {boxSizeX = stod(arg.substr(11,arg.size()-11));}
-		catch (...) {cout << "Error reading boxSizeX option: " << arg << endl;}
-	}
-	for (int i=0; i<argc; i++) if (string(argv[i]).substr(0,11)=="--boxSizeY=")
-	{
-		string arg = argv[i];
-		try {boxSizeY = stod(arg.substr(11,arg.size()-11));}
-		catch (...) {cout << "Error reading boxSizeX option: " << arg << endl;}
-	}
-	
-	// try to use a specified average number walls if given in arguments
-	double avgWalls = 4;
-	for (int i=0; i<argc; i++) if (string(argv[i]).substr(0,11)=="--avgWalls=")
-	{
-		string arg = argv[i];
-		try {avgWalls = stod(arg.substr(11,arg.size()-11));}
-		catch (...) {cout << "Error reading avgWalls option: " << arg << endl;}
-	}
-	
-	
-	//////////////////////////// Neural Network ////////////////////////////
-	
-	// Base NN
+	// Base Neural Network
 	
 	NeuralNetwork nnetwork(6,2,5,2,seed);
 	nnetwork.initRandom();
@@ -150,46 +118,20 @@ int main(int argc, char **argv)
 	string nnfilename = "nnetwork.dat";
 	nnetwork.saveToFile(nnfilename);
 	
-	/////////////////////////// Boid placement /////////////////////////////
+	// Window
 	
-	// try to use a specified number of boids if given in arguments
-	int nBoids = 10;
-	for (int i=0; i<argc; i++) if (string(argv[i]).substr(0,9)=="--nBoids=")
-	{
-		string arg = argv[i];
-		try {nBoids = stoi(arg.substr(9,arg.size()-9));}
-		catch (...) {cout << "Error reading nBoids option: " << arg << endl;}
-	}
-	
-	/////////////////////////////// Window /////////////////////////////////
-	
-	int windowSizeX = 600;
-	int windowSizeY = 600;
-	
-	// try to use a specified window size if given in arguments
-	for (int i=0; i<argc; i++) if (string(argv[i]).substr(0,14)=="--windowSizeX=")
-	{
-		string arg = argv[i];
-		try {windowSizeX = stoi(arg.substr(14,arg.size()-14));}
-		catch (...) {cout << "Error reading windowSizeX option: " << arg << endl;}
-	}
-	for (int i=0; i<argc; i++) if (string(argv[i]).substr(0,14)=="--windowSizeY=")
-	{
-		string arg = argv[i];
-		try {windowSizeY = stoi(arg.substr(14,arg.size()-14));}
-		catch (...) {cout << "Error reading windowSizeY option: " << arg << endl;}
-	}
+	int windowSizeX = 600; readOption(argc, argv, "windowSizeX", windowSizeX);
+	int windowSizeY = 600; readOption(argc, argv, "windowSizeY", windowSizeY);
 	
 	sf::RenderWindow window(sf::VideoMode(windowSizeX,windowSizeY),"Boids - Avoiders");
-	
 	window.setFramerateLimit(30);
 	
-	// create neural network and world parameter structures
+	// Create neural network and world parameter structures
 	
 	struct NNParams pnn = {0.0, 0.5, nnfilename};
 	struct WorldParams pworld = {seed, nBoids, boxSizeX, boxSizeY, avgWalls};
 	
-	// call simulation for first generation
+	// Call simulation for first generation
 	
 	int numGen = 1; 
 	run_generation(window, pnn, pworld, numGen);
