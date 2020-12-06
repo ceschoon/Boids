@@ -13,9 +13,6 @@
 ////////////////////////////////////////////////////////////////////////////
 
 
-// TODO: use standard argument parsing function
-
-
 // Suggestions for updates: 
 
 // Neural network for boid behaviour
@@ -46,6 +43,7 @@
 #include "Boid.h"
 #include "Physics.h"
 #include "Rendering.h"
+#include "myoptions.h"
 
 using namespace std;
 using namespace std::chrono;
@@ -86,11 +84,10 @@ int main(int argc, char **argv)
 {
 	/////////////////////////////// Version ////////////////////////////////
 	
-	string versionCode = "1.4.1";
-	
-	for (int i=0; i<argc; i++) if (string(argv[i]).substr(0,9)=="--version")
+	string versionCode = "1.4.3";
+	if (detectOption(argc, argv, "version"))
 	{
-		cout << "Boids simulation, version " << versionCode << endl;
+		cout << "Boids, version " << versionCode << endl;
 		cout << endl;
 		
 		return 0;
@@ -99,7 +96,7 @@ int main(int argc, char **argv)
 	
 	//////////////////////////////// Help //////////////////////////////////
 	
-	for (int i=0; i<argc; i++) if (string(argv[i]).substr(0,6)=="--help")
+	if (detectOption(argc, argv, "help"))
 	{
 		cout << "Usage: ./boids --<option name>=<option value>" << endl;
 		cout << endl;
@@ -126,15 +123,7 @@ int main(int argc, char **argv)
 	////////////////////////////// Randomness //////////////////////////////
 	
 	random_device true_gen;
-	int seed = true_gen();
-	
-	// try to use a specified seed if given in arguments
-	for (int i=0; i<argc; i++) if (string(argv[i]).substr(0,7)=="--seed=")
-	{
-		string arg = argv[i];
-		try {seed = stoi(arg.substr(7,arg.size()-7));}
-		catch (...) {cout << "Error reading seed option: " << arg << endl;}
-	}
+	int seed = true_gen(); readOption(argc, argv, "seed", seed);
 	
 	cout << "seed = " << seed << endl;
 	default_random_engine gen(seed);
@@ -142,34 +131,14 @@ int main(int argc, char **argv)
 	
 	///////////////////////////// World Creation ///////////////////////////
 	
-	double boxSizeX = 30;
-	double boxSizeY = 30;
-	
-	// try to use a specified box size if given in arguments
-	for (int i=0; i<argc; i++) if (string(argv[i]).substr(0,11)=="--boxSizeX=")
-	{
-		string arg = argv[i];
-		try {boxSizeX = stod(arg.substr(11,arg.size()-11));}
-		catch (...) {cout << "Error reading boxSizeX option: " << arg << endl;}
-	}
-	for (int i=0; i<argc; i++) if (string(argv[i]).substr(0,11)=="--boxSizeY=")
-	{
-		string arg = argv[i];
-		try {boxSizeY = stod(arg.substr(11,arg.size()-11));}
-		catch (...) {cout << "Error reading boxSizeX option: " << arg << endl;}
-	}
+	double boxSizeX = 30; readOption(argc, argv, "boxSizeX", boxSizeX);
+	double boxSizeY = 30; readOption(argc, argv, "boxSizeY", boxSizeY);
 	
 	// create world
-	World world(30,30,seed);
+	World world(boxSizeX,boxSizeY,seed);
 	
 	// try to use a specified average number walls if given in arguments
-	double avgWalls = 4;
-	for (int i=0; i<argc; i++) if (string(argv[i]).substr(0,11)=="--avgWalls=")
-	{
-		string arg = argv[i];
-		try {avgWalls = stod(arg.substr(11,arg.size()-11));}
-		catch (...) {cout << "Error reading avgWalls option: " << arg << endl;}
-	}
+	double avgWalls = 4; readOption(argc, argv, "avgWalls", avgWalls);
 	
 	// randomly place walls
 	
@@ -182,13 +151,7 @@ int main(int argc, char **argv)
 	/////////////////////////// Boid placement /////////////////////////////
 	
 	// try to use a specified number of boids if given in arguments
-	int nBoids = 30;
-	for (int i=0; i<argc; i++) if (string(argv[i]).substr(0,9)=="--nBoids=")
-	{
-		string arg = argv[i];
-		try {nBoids = stoi(arg.substr(9,arg.size()-9));}
-		catch (...) {cout << "Error reading nBoids option: " << arg << endl;}
-	}
+	int nBoids = 30; readOption(argc, argv, "nBoids", nBoids);
 	
 	// construct boids and vector of pointers
 	vector<Boid> boids(nBoids, Boid(0,0,0,1e-3));
@@ -199,25 +162,10 @@ int main(int argc, char **argv)
 	
 	/////////////////////////////// Window /////////////////////////////////
 	
-	int windowSizeX = 600;
-	int windowSizeY = 600;
-	
-	// try to use a specified window size if given in arguments
-	for (int i=0; i<argc; i++) if (string(argv[i]).substr(0,14)=="--windowSizeX=")
-	{
-		string arg = argv[i];
-		try {windowSizeX = stoi(arg.substr(14,arg.size()-14));}
-		catch (...) {cout << "Error reading windowSizeX option: " << arg << endl;}
-	}
-	for (int i=0; i<argc; i++) if (string(argv[i]).substr(0,14)=="--windowSizeY=")
-	{
-		string arg = argv[i];
-		try {windowSizeY = stoi(arg.substr(14,arg.size()-14));}
-		catch (...) {cout << "Error reading windowSizeY option: " << arg << endl;}
-	}
+	int windowSizeX = 600; readOption(argc, argv, "windowSizeX", windowSizeX);
+	int windowSizeY = 600; readOption(argc, argv, "windowSizeY", windowSizeY);
 	
 	sf::RenderWindow window(sf::VideoMode(windowSizeX,windowSizeY),"Boids");
-	
 	window.setFramerateLimit(30);
 	
 	////////////////////////////// Main Loop ///////////////////////////////
