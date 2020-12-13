@@ -13,8 +13,7 @@
 ////////////////////////////////////////////////////////////////////////////
 
 
-// TODO: place the target away for the boid's initial position
-//       or try to get multiple targets one after the other (max count)
+// TODO: Best evaluation: get multiple targets one after the other ? (max count wins)
 // TODO: ? network statistics for monitoring ?
 // TODO: perturb one or few weights at a time
 // TODO: remember direction (i.e. which weight) of the improvement
@@ -58,7 +57,17 @@ struct WorldParams
 };
 
 
-void run_generation(sf::RenderWindow &window, NNParams pnn, WorldParams pworld, int numGen, double simTime);
+struct WindowParams
+{
+	bool pause;
+	bool slowdown;
+	bool accelerate;
+	bool maxspeed;
+};
+
+
+void run_generation(sf::RenderWindow &window, WindowParams &pwindow,
+                    NNParams pnn, WorldParams pworld, int numGen, double simTime);
 void renderGenerationInfo(sf::RenderWindow &window, int numGen);
 void renderBoidAndTarget(sf::RenderWindow &window, BoidNN boid, 
                          double scaleX, double scaleY);
@@ -98,6 +107,7 @@ int main(int argc, char **argv)
 		cout << "Controls:   Press Space to pause the simulation   " << endl;
 		cout << "            Press S to slow down the simulation   " << endl;
 		cout << "            Press A to accelerate the simulation  " << endl;
+		cout << "            Press M to accelerate the simulation (max speed)  " << endl;
 		cout << endl;
 		
 		return 0;
@@ -135,21 +145,22 @@ int main(int argc, char **argv)
 	sf::RenderWindow window(sf::VideoMode(windowSizeX,windowSizeY),"Boids - Avoiders");
 	window.setFramerateLimit(30);
 	
-	// Create neural network and world parameter structures
+	// Create neural network and other parameter structures
 	
-	double noiseStd = 0.05; readOption(argc, argv, "noiseStd", noiseStd);
+	double noiseStd = 0.001; readOption(argc, argv, "noiseStd", noiseStd);
 	
 	struct NNParams pnn = {0.0, noiseStd, nnfilename};
 	struct WorldParams pworld = {seed, nBoids, boxSizeX, boxSizeY, avgWalls};
+	struct WindowParams pwindow = {false, false, false, false};
 	
 	// Call simulation for first generation
 	
 	int numGen = 1;
-	double simTime = 60; readOption(argc, argv, "simTime", simTime);
+	double simTime = 30; readOption(argc, argv, "simTime", simTime);
 	
 	while (window.isOpen())
 	{
-		run_generation(window, pnn, pworld, numGen, simTime);
+		run_generation(window, pwindow, pnn, pworld, numGen, simTime);
 		numGen ++;
 		pworld.seed = pworld.seed + 1;
 	}
@@ -160,8 +171,8 @@ int main(int argc, char **argv)
 
 
 
-void run_generation(sf::RenderWindow &window, NNParams pnn, 
-                    WorldParams pworld, int numGen, double simTime)
+void run_generation(sf::RenderWindow &window, WindowParams &pwindow,
+                    NNParams pnn, WorldParams pworld, int numGen, double simTime)
 {
 	//////////////////////////// Initialisation ////////////////////////////
 	
@@ -204,9 +215,6 @@ void run_generation(sf::RenderWindow &window, NNParams pnn,
 	
 	for (int i=0; i<pworld.nBoids; i++) 
 	{
-		//double x = dist01(gen)*pworld.sizeX;
-		//double y = dist01(gen)*pworld.sizeY;
-		
 		double x,y; x=y=-1;
 		while (x<0 || y<0 || x>pworld.sizeX || y>pworld.sizeY)
 		{
@@ -227,10 +235,6 @@ void run_generation(sf::RenderWindow &window, NNParams pnn,
 	double timeConvFactorBase = 1;
 	double timeConvFactor = timeConvFactorBase;
 	
-	bool pause = false;
-	bool slowdown = false;
-	bool accelerate = false;
-	
 	steady_clock::time_point lastFrame = steady_clock::now();
 	
 	while (window.isOpen() && t<simTime)
@@ -248,32 +252,39 @@ void run_generation(sf::RenderWindow &window, NNParams pnn,
 			if (event.type == sf::Event::KeyPressed && 
 				event.key.code == sf::Keyboard::Space)
 			{
-				pause = !pause;
+				pwindow.pause = !pwindow.pause;
 			}
 			
 			if (event.type == sf::Event::KeyReleased && 
 				event.key.code == sf::Keyboard::S)
 			{
-				slowdown = !slowdown;
+				pwindow.slowdown = !pwindow.slowdown;
 			}
 			
 			if (event.type == sf::Event::KeyReleased && 
 				event.key.code == sf::Keyboard::A)
 			{
-				accelerate = !accelerate;
+				pwindow.accelerate = !pwindow.accelerate;
+			}
+			
+			if (event.type == sf::Event::KeyReleased && 
+				event.key.code == sf::Keyboard::M)
+			{
+				pwindow.maxspeed = !pwindow.maxspeed;
 			}
 		}
 		
-		if (!pause) 
+		if (!pwindow.pause) 
 		{
 			//////////////////////////// Timing ////////////////////////////
 			
-			if (slowdown)
-				timeConvFactor = timeConvFactorBase/5;
-			else if (accelerate)
-				timeConvFactor = timeConvFactorBase*5;
-			else
-				timeConvFactor = timeConvFactorBase;
+			// maxspeed: techically not max speed but we use a number large 
+			// enough so that the cpu is fully used between each frame
+			
+			if (pwindow.slowdown)        timeConvFactor = timeConvFactorBase/5;
+			else if (pwindow.accelerate) timeConvFactor = timeConvFactorBase*5;
+			else if (pwindow.maxspeed)   timeConvFactor = timeConvFactorBase*100;
+			else timeConvFactor = timeConvFactorBase;
 			
 			////////////////////////// Time Step ///////////////////////////
 			
@@ -284,14 +295,29 @@ void run_generation(sf::RenderWindow &window, NNParams pnn,
 			
 			double time_world = time_real*timeConvFactor;
 			
-			world.advanceTime(time_world,dt);
-			t += time_world;
+			// cut the time integration in small batches of t_step so that
+			// we can regularly and accurately do the target detection
 			
-			// boid target detection and increment chronometer
-			// TODO: should do the detection at each step, not just after
-			//       the time evolution of world class. 
-			//       But is it really a problem?
-			for (int i=0; i<boids.size(); i++) boids[i].detectTarget(time_world,0.3);
+			bool last_step = false;
+			double t0 = t;
+			double t_step = 0.08;
+			
+			while (!last_step)
+			{
+				// last step must be so that we don't exeed the max time
+				if (t+t_step>t0+time_world) 
+				{
+					t_step = t0+time_world-t;
+					last_step = true;
+				}
+				
+				// world time integration
+				world.advanceTime(t_step,dt);
+				t += t_step;
+				
+				// boid target detection
+				for (int i=0; i<boids.size(); i++) boids[i].detectTarget(t_step,0.3);
+			}
 			
 			/////////////////////////// Rendering //////////////////////////
 			
