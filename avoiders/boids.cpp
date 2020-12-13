@@ -13,6 +13,11 @@
 ////////////////////////////////////////////////////////////////////////////
 
 
+// Note: The boids do not perform better than simply going forward.
+//       I believe the networks do not improve because the boids randomly 
+//       step on the target too frequently. I should make the evaluation
+//       more difficult so that they can hardly pass it by chance.
+
 // TODO: Best evaluation: get multiple targets one after the other ? (max count wins)
 // TODO: ? network statistics for monitoring ?
 // TODO: perturb one or few weights at a time
