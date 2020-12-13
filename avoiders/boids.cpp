@@ -14,7 +14,10 @@
 
 
 // TODO: place the target away for the boid's initial position
+//       or try to get multiple targets one after the other (max count)
 // TODO: ? network statistics for monitoring ?
+// TODO: perturb one or few weights at a time
+// TODO: remember direction (i.e. which weight) of the improvement
 
 
 #include <SFML/Graphics.hpp>
@@ -57,7 +60,8 @@ struct WorldParams
 
 void run_generation(sf::RenderWindow &window, NNParams pnn, WorldParams pworld, int numGen, double simTime);
 void renderGenerationInfo(sf::RenderWindow &window, int numGen);
-
+void renderBoidAndTarget(sf::RenderWindow &window, BoidNN boid, 
+                         double scaleX, double scaleY);
 
 int main(int argc, char **argv)
 {
@@ -194,13 +198,24 @@ void run_generation(sf::RenderWindow &window, NNParams pnn,
 	}
 	
 	// Assign random targets for boids
+	// place the target on a circle centred on the boid
 	
 	uniform_real_distribution<double> dist01(0,1);
 	
 	for (int i=0; i<pworld.nBoids; i++) 
 	{
-		double x = dist01(gen)*pworld.sizeX;
-		double y = dist01(gen)*pworld.sizeY;
+		//double x = dist01(gen)*pworld.sizeX;
+		//double y = dist01(gen)*pworld.sizeY;
+		
+		double x,y; x=y=-1;
+		while (x<0 || y<0 || x>pworld.sizeX || y>pworld.sizeY)
+		{
+			double angl = 2*PI*dist01(gen);
+			double R = min(pworld.sizeX/2.0,pworld.sizeY/2.0);
+			
+			x = R * cos(angl);
+			y = R * sin(angl);
+		}
 		
 		boids[i].setTarget(x,y);
 	}
@@ -276,14 +291,17 @@ void run_generation(sf::RenderWindow &window, NNParams pnn,
 			// TODO: should do the detection at each step, not just after
 			//       the time evolution of world class. 
 			//       But is it really a problem?
-			for (int i=0; i<boids.size(); i++) boids[i].detectTarget(time_world,0.1);
+			for (int i=0; i<boids.size(); i++) boids[i].detectTarget(time_world,0.3);
 			
 			/////////////////////////// Rendering //////////////////////////
 			
+			double scaleX = window.getSize().x/pworld.sizeX;
+			double scaleY = window.getSize().y/pworld.sizeY;
 			
 			window.clear(sf::Color::White);
 			world.render(window);
 			//world.renderDebug(window,0,true);
+			renderBoidAndTarget(window, boids[0], scaleX, scaleY);
 			renderGenerationInfo(window, numGen);
 			window.display();
 			
@@ -348,6 +366,27 @@ void renderGenerationInfo(sf::RenderWindow &window, int numGen)
 	window.draw(text);
 }
 
+
+void renderBoidAndTarget(sf::RenderWindow &window, BoidNN boid, 
+                         double scaleX, double scaleY)
+{
+	sf::CircleShape triangle(1,3);
+	triangle.setScale(0.5*scaleX*0.3,1*scaleY*0.3);
+	triangle.setOrigin(1,1);
+	triangle.setFillColor(sf::Color::Red);
+	
+	sf::CircleShape circleTarget(1);
+	circleTarget.setScale(0.5*scaleX*0.3,0.5*scaleY*0.3);
+	circleTarget.setOrigin(1,1);
+	circleTarget.setFillColor(sf::Color::Red);
+	
+	triangle.setPosition(sf::Vector2f(boid.x*scaleX,boid.y*scaleY));
+	triangle.setRotation(boid.orientation()+90);
+	window.draw(triangle);
+	
+	circleTarget.setPosition(sf::Vector2f(boid.getTargetX()*scaleX,boid.getTargetY()*scaleY));
+	window.draw(circleTarget);
+}
 
 
 

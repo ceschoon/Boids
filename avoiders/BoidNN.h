@@ -45,6 +45,9 @@ class BoidNN : public Boid
 		sensors_ = vector<double>(4,0);
 	}
 	
+	double getTargetX() {return targetX_;}
+	double getTargetY() {return targetY_;}
+	
 	void setTarget(double x, double y) 
 	{
 		reachedTarget_ = false;
