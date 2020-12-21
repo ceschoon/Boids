@@ -29,7 +29,7 @@
 // TODO: First of all, try to train boid with 1 sensor (direction of target)
 //       in a box without walls.
 
-// TODO: Add sensor for distance to target
+// TODO: Add sensor for distance to target -> to slow down when approaching
 // TODO: Best evaluation: get multiple targets one after the other ? (max count wins)
 // TODO: ? network statistics for monitoring ?
 // TODO: perturb one or few weights at a time
