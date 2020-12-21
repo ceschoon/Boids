@@ -18,6 +18,17 @@
 //       step on the target too frequently. I should make the evaluation
 //       more difficult so that they can hardly pass it by chance.
 
+//       Problem: With the walls it could happen than a target is in a
+//       closed region that the boid cannot access. Using a test with 
+//       multiple targets could make it impossible to pass or would once
+//       again be passed by chance by the boids whose all targets were 
+//       accessible.
+
+//       Solution: Place targets iteratively on rays starting from the boid.
+
+// TODO: First of all, try to train boid with 1 sensor (direction of target)
+//       in a box without walls.
+
 // TODO: Best evaluation: get multiple targets one after the other ? (max count wins)
 // TODO: ? network statistics for monitoring ?
 // TODO: perturb one or few weights at a time
