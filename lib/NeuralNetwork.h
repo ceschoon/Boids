@@ -52,9 +52,13 @@ class NeuralNetwork
 		int getNumSensors() {return Ns_;}
 		int getNumLayers() {return Nl_;}
 		int getNumNeuronsPerLayer() {return Np_;}
+		int getNumOutputs() {return No_;}
 		
-		double getWeight(int il, int i1, int i2);
+		double getWeight(int il, int i1, int i2); // i1 index on layer closest to the output
 		double getBias(int il, int i);
+		
+		void setWeight(int il, int i1, int i2, double ww);
+		void setBias(int il, int i, double bb);
 		
 		vector<double> getAllWeights() {return w_;}
 		vector<double> getAllBiases() {return b_;}

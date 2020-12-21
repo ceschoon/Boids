@@ -142,11 +142,58 @@ double NeuralNetwork::getBias(int il, int i)
 		if (i<0 || i>=No_) throw std::out_of_range("Wrong index in getBias");
 	}
 	
-	// return weight
+	// return bias
 	if (il<Nl_) return b_[Np_ + Np_*(il-1) +i];
 	else return b_[Np_ + Np_*(Nl_-1) + i];
 }
 
+
+
+void NeuralNetwork::setWeight(int il, int i1, int i2, double ww) 
+{
+	// test for misuse
+	if (il<0 || il>Nl_) throw std::out_of_range("Wrong index in setWeight");
+	if (il==0)
+	{
+		if (i1<0 || i1>=Np_) throw std::out_of_range("Wrong index in setWeight");
+		if (i2<0 || i2>=Ns_) throw std::out_of_range("Wrong index in setWeight");
+	}
+	else if (il<Nl_)
+	{
+		if (i1<0 || i1>=Np_) throw std::out_of_range("Wrong index in setWeight");
+		if (i2<0 || i2>=Np_) throw std::out_of_range("Wrong index in setWeight");
+	}
+	else
+	{
+		if (i1<0 || i1>=No_) throw std::out_of_range("Wrong index in setWeight");
+		if (i2<0 || i2>=Np_) throw std::out_of_range("Wrong index in setWeight");
+	}
+	
+	// set weight
+	if (il==0) w_[Ns_*i1+i2] = ww;
+	else if (il<Nl_) w_[Ns_*Np_ + Np_*Np_*(il-1) + Np_*i1+i2] = ww;
+	else w_[Ns_*Np_ + Np_*Np_*(Nl_-1) + Np_*i1+i2] = ww;
+}
+
+
+
+void NeuralNetwork::setBias(int il, int i, double bb)
+{
+	// test for misuse
+	if (il<0 || il>Nl_) throw std::out_of_range("Wrong index in setBias");
+	if (il<Nl_)
+	{
+		if (i<0 || i>=Np_) throw std::out_of_range("Wrong index in setBias");
+	}
+	else
+	{
+		if (i<0 || i>=No_) throw std::out_of_range("Wrong index in setBias");
+	}
+	
+	// set bias
+	if (il<Nl_) b_[Np_ + Np_*(il-1) +i] = bb;
+	else b_[Np_ + Np_*(Nl_-1) + i] = bb;
+}
 
 
 
@@ -209,8 +256,8 @@ int NeuralNetwork::loadFromFile(string filename)
 		b_ = vector<double>(Nbiases,0);
 		
 		// Read the weights and biases vectors
-		for (int i=0; i<Nweights; i++) {getline(inFile, line); w_[i] = stoi(line);}
-		for (int i=0; i<Nbiases;  i++) {getline(inFile, line); b_[i] = stoi(line);}
+		for (int i=0; i<Nweights; i++) {getline(inFile, line); w_[i] = stod(line);}
+		for (int i=0; i<Nbiases;  i++) {getline(inFile, line); b_[i] = stod(line);}
 	}
 	catch(...)
 	{
