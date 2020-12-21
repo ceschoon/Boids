@@ -29,6 +29,7 @@
 // TODO: First of all, try to train boid with 1 sensor (direction of target)
 //       in a box without walls.
 
+// TODO: Add sensor for distance to target
 // TODO: Best evaluation: get multiple targets one after the other ? (max count wins)
 // TODO: ? network statistics for monitoring ?
 // TODO: perturb one or few weights at a time
@@ -143,12 +144,13 @@ int main(int argc, char **argv)
 	
 	double boxSizeX = 30; readOption(argc, argv, "boxSizeX", boxSizeX);
 	double boxSizeY = 30; readOption(argc, argv, "boxSizeY", boxSizeY);
-	double avgWalls = 4;  readOption(argc, argv, "avgWalls", avgWalls);
+	double avgWalls = 0;  readOption(argc, argv, "avgWalls", avgWalls);
 	
 	// Base Neural Network
 	
-	NeuralNetwork nnetwork(6,2,5,2,seed);
+	NeuralNetwork nnetwork(1,1,1,2,seed);
 	nnetwork.initRandom();
+	nnetwork.loadFromFile("nnetwork_test.dat"); // TODO temp (make option)
 	
 	string nnfilename = "nnetwork.dat";
 	nnetwork.saveToFile(nnfilename);
@@ -163,7 +165,7 @@ int main(int argc, char **argv)
 	
 	// Create neural network and other parameter structures
 	
-	double noiseStd = 0.001; readOption(argc, argv, "noiseStd", noiseStd);
+	double noiseStd = 0.01; readOption(argc, argv, "noiseStd", noiseStd);
 	
 	struct NNParams pnn = {0.0, noiseStd, nnfilename};
 	struct WorldParams pworld = {seed, nBoids, boxSizeX, boxSizeY, avgWalls};
@@ -220,6 +222,13 @@ void run_generation(sf::RenderWindow &window, WindowParams &pwindow,
 	{
 		nnetworks[i].perturbWeights(pnn.noiseMean, pnn.noiseStd);
 		nnetworks[i].perturbBiases(pnn.noiseMean, pnn.noiseStd);
+		
+		// TODO temporary
+		//nnetworks[i].setWeight(0,0,0,1.0);
+		//nnetworks[i].setBias(0,0,0.0);
+		
+		// TODO temporary
+		//nnetworks[i].loadFromFile("nnetwork_test.dat");
 		
 		boids[i].setNNetwork(&nnetworks[i]);
 	}
@@ -383,6 +392,98 @@ void run_generation(sf::RenderWindow &window, WindowParams &pwindow,
 	cout << "All times are ";
 	for (int i=0; i<boids.size(); i++) cout << boids[i].detectTarget(0.0) << " ";
 	cout << endl;
+	
+	/*
+	vector<double> w = nnetworks[fittest].getAllWeights();
+	vector<double> b = nnetworks[fittest].getAllBiases();
+	
+	int Ns = nnetworks[fittest].getNumSensors();
+	int Nl = nnetworks[fittest].getNumLayers();
+	int Np = nnetworks[fittest].getNumNeuronsPerLayer();
+	int No = nnetworks[fittest].getNumOutputs();
+	
+	cout << endl;
+	cout << "Network weights (fittest):" << endl;
+	
+	cout << endl;
+	for (int j=0; j<Ns; j++) // sensor-layer
+	{
+		for (int i=0; i<Np; i++)
+		{
+			double ww = nnetworks[fittest].getWeight(0,i,j);
+			cout << scientific << setprecision(2) << setw(10) << ww;
+		}
+		cout << endl;
+	}
+	
+	for (int k=0; k<Nl-1; k++) // layer-layer
+	{
+		cout << endl;
+		for (int j=0; j<Np; j++)
+		{
+			for (int i=0; i<Np; i++)
+			{
+				double ww = nnetworks[fittest].getWeight(k+1,i,j);
+				cout << scientific << setprecision(2) << setw(10) << ww;
+			}
+			cout << endl;
+		}
+	}
+	
+	cout << endl;
+	for (int j=0; j<Np; j++) // layer-output
+	{
+		for (int i=0; i<No; i++)
+		{
+			double ww = nnetworks[fittest].getWeight(Nl,i,j);
+			cout << scientific << setprecision(2) << setw(10) << ww;
+		}
+		cout << endl;
+	}
+	
+	cout << endl;
+	cout << "Network biases (fittest):" << endl;
+	
+	cout << endl;
+	for (int i=0; i<Np; i++) // sensor-layer
+	{
+		double bb = nnetworks[fittest].getBias(0,i);
+		cout << scientific << setprecision(2) << setw(10) << bb;
+	}
+	cout << endl;
+	
+	for (int k=0; k<Nl-1; k++) // layer-layer
+	{
+		cout << endl;
+		for (int i=0; i<Np; i++)
+		{
+			double bb = nnetworks[fittest].getBias(k+1,i);
+			cout << scientific << setprecision(2) << setw(10) << bb;
+		}
+		cout << endl;
+	}
+	
+	cout << endl;
+	for (int i=0; i<No; i++) // layer-output
+	{
+		double bb = nnetworks[fittest].getBias(Nl,i);
+		cout << scientific << setprecision(2) << setw(10) << bb;
+	}
+	cout << endl;
+	cout << endl;
+	*/
+	
+	/*
+	for (double ang = -1.0; ang<=1.0; ang+=0.2)
+	{
+		vector<double> sensors(1,ang);
+		vector<double> outputs = nnetworks[fittest].eval(sensors);
+		
+		cout << "Test eval on {";
+		for (double val : sensors) cout << setw(5) << val << " "; cout << "}: ";
+		for (double val : outputs) cout << setw(5) << val << " "; cout << endl;
+	}
+	*/
 	
 	// Save best neural network
 	

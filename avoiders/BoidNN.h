@@ -6,6 +6,7 @@
 #include "Boid.h"
 #include "Physics.h"
 #include "NeuralNetwork.h"
+#include "Math.h"
 
 
 using namespace std;
@@ -42,7 +43,7 @@ class BoidNN : public Boid
 		targetX_ = 0.0;
 		targetY_ = 0.0;
 		
-		sensors_ = vector<double>(4,0);
+		sensors_ = vector<double>(1,0);
 	}
 	
 	double getTargetX() {return targetX_;}
@@ -78,12 +79,13 @@ class BoidNN : public Boid
 		// First sensor is a measure of how close the boid points to its 
 		// target. We use the cosine of the angle it makes with the target.
 		
-		double angleWithTarget = angle(x,y,targetX_,targetY_) - orientation();
-		sensors_[0] = cos(angleWithTarget);
+		double angleWithTarget = angleDifference(angle(x,y,targetX_,targetY_),orientation());
+		//sensors_[0] = sin(angleWithTarget);
+		sensors_[0] = angleWithTarget/180.0;
 		
 		// The next N sensors are the distance to the first intersection
 		// between a wall and rays covering the field of view of the boid.
-		
+		/*
 		int N=3;
 		for (int i=0; i<N; i++)
 		{
@@ -110,6 +112,7 @@ class BoidNN : public Boid
 			
 			sensors_[i] = 2*distMin/obstacleRange - 1;
 		}
+		*/
 	}
 	
 	virtual void computeBehaviouralForces(const vector<Boid> &boids, const vector<Wall> &walls)
