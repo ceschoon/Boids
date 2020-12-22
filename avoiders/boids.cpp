@@ -13,23 +13,19 @@
 ////////////////////////////////////////////////////////////////////////////
 
 
-// Note: The boids do not perform better than simply going forward.
-//       I believe the networks do not improve because the boids randomly 
-//       step on the target too frequently. I should make the evaluation
-//       more difficult so that they can hardly pass it by chance.
+// Note: The boids do not improve because the evaluation is not progresive.
+//       Either you get the target (which is unlikely for a random network)
+//       or you don't and all the variations, including the slightly better
+//       ones, receive the same score. 
+//       -> Now better by using the distance to target in the evaluation.
 
-//       Problem: With the walls it could happen than a target is in a
-//       closed region that the boid cannot access. Using a test with 
-//       multiple targets could make it impossible to pass or would once
-//       again be passed by chance by the boids whose all targets were 
-//       accessible.
+// TODO: Make a better evaluation for the same objective (catching targets)
+//       e.g. Better score as the boid approches the target + many targets
+//       Add penalty for bumping into walls
 
-//       Solution: Place targets iteratively on rays starting from the boid.
+// Idea: Variant where the target follows the boid (i.e. as a predator)
+//       and the boid must avoid it.
 
-// TODO: First of all, try to train boid with 1 sensor (direction of target)
-//       in a box without walls.
-
-// TODO: Add sensor for distance to target -> to slow down when approaching
 // TODO: Best evaluation: get multiple targets one after the other ? (max count wins)
 // TODO: ? network statistics for monitoring ?
 // TODO: perturb one or few weights at a time
@@ -120,6 +116,7 @@ int main(int argc, char **argv)
 		cout << "          windowSizeY     int              size of the window           " << endl;
 		cout << "          simTime         double           simulation time for one gen  " << endl;
 		cout << "          noiseStd        double           noise std on copies of nn    " << endl;
+		cout << "          initNNFile      string           file for nn initialisation   " << endl;
 		cout << endl;
 		cout << "Controls:   Press Space to pause the simulation   " << endl;
 		cout << "            Press S to slow down the simulation   " << endl;
@@ -148,9 +145,11 @@ int main(int argc, char **argv)
 	
 	// Base Neural Network
 	
-	NeuralNetwork nnetwork(1,1,1,2,seed);
-	nnetwork.initRandom();
-	nnetwork.loadFromFile("nnetwork_test.dat"); // TODO temp (make option)
+	NeuralNetwork nnetwork(2,1,2,2,seed);
+	
+	string nninitfilename = ""; readOption(argc, argv, "initNNFile", nninitfilename);
+	if (nninitfilename.empty()) nnetwork.initRandom();
+	else nnetwork.loadFromFile(nninitfilename);
 	
 	string nnfilename = "nnetwork.dat";
 	nnetwork.saveToFile(nnfilename);
@@ -165,7 +164,7 @@ int main(int argc, char **argv)
 	
 	// Create neural network and other parameter structures
 	
-	double noiseStd = 0.01; readOption(argc, argv, "noiseStd", noiseStd);
+	double noiseStd = 0.1; readOption(argc, argv, "noiseStd", noiseStd);
 	
 	struct NNParams pnn = {0.0, noiseStd, nnfilename};
 	struct WorldParams pworld = {seed, nBoids, boxSizeX, boxSizeY, avgWalls};
@@ -223,12 +222,13 @@ void run_generation(sf::RenderWindow &window, WindowParams &pwindow,
 		nnetworks[i].perturbWeights(pnn.noiseMean, pnn.noiseStd);
 		nnetworks[i].perturbBiases(pnn.noiseMean, pnn.noiseStd);
 		
-		// TODO temporary
-		//nnetworks[i].setWeight(0,0,0,1.0);
-		//nnetworks[i].setBias(0,0,0.0);
-		
-		// TODO temporary
-		//nnetworks[i].loadFromFile("nnetwork_test.dat");
+		// TODO temporary (restrict degrees of freedom)
+		nnetworks[i].setWeight(0,0,0,1.0);
+		nnetworks[i].setWeight(0,0,1,0.0);
+		nnetworks[i].setWeight(0,1,0,0.0);
+		nnetworks[i].setWeight(0,1,1,1.0);
+		nnetworks[i].setBias(0,0,0.0);
+		nnetworks[i].setBias(0,1,0.0);
 		
 		boids[i].setNNetwork(&nnetworks[i]);
 	}
@@ -342,6 +342,9 @@ void run_generation(sf::RenderWindow &window, WindowParams &pwindow,
 				
 				// boid target detection
 				for (int i=0; i<boids.size(); i++) boids[i].detectTarget(t_step,0.3);
+				
+				// boid score update
+				for (int i=0; i<boids.size(); i++) boids[i].updateScore(t_step);
 			}
 			
 			/////////////////////////// Rendering //////////////////////////
@@ -371,119 +374,33 @@ void run_generation(sf::RenderWindow &window, WindowParams &pwindow,
 	// Detect fittest
 	
 	int fittest = 0;
-	double bestTime = boids[0].detectTarget(0.0);
+	double bestScore = boids[0].getScore();
 	
 	for (int i=0; i<boids.size(); i++)
 	{
-		double time = boids[i].detectTarget(0.0);
+		double score = boids[i].getScore();
 		
-		if (bestTime<0 || (time<bestTime && time>0))
+		if (score > bestScore)
 		{
 			fittest = i;
-			bestTime = boids[i].detectTarget(0.0);
+			bestScore = score;
 		}
 	}
 	
 	// Debug info
 	
 	cout << "----------------------------------------------------" << endl;
-	cout << "Generation " << numGen << ": best time is " << bestTime << endl,
+	cout << "Generation " << numGen << ": best score is " << bestScore << endl,
 	
-	cout << "All times are ";
-	for (int i=0; i<boids.size(); i++) cout << boids[i].detectTarget(0.0) << " ";
+	cout << fixed << setprecision(1);
+	
+	cout << "All scores are ";
+	for (int i=0; i<boids.size(); i++) cout << setw(6) << boids[i].getScore() << " ";
 	cout << endl;
 	
-	/*
-	vector<double> w = nnetworks[fittest].getAllWeights();
-	vector<double> b = nnetworks[fittest].getAllBiases();
-	
-	int Ns = nnetworks[fittest].getNumSensors();
-	int Nl = nnetworks[fittest].getNumLayers();
-	int Np = nnetworks[fittest].getNumNeuronsPerLayer();
-	int No = nnetworks[fittest].getNumOutputs();
-	
+	cout << "All times are  ";
+	for (int i=0; i<boids.size(); i++) cout << setw(6) << boids[i].detectTarget(0.0) << " ";
 	cout << endl;
-	cout << "Network weights (fittest):" << endl;
-	
-	cout << endl;
-	for (int j=0; j<Ns; j++) // sensor-layer
-	{
-		for (int i=0; i<Np; i++)
-		{
-			double ww = nnetworks[fittest].getWeight(0,i,j);
-			cout << scientific << setprecision(2) << setw(10) << ww;
-		}
-		cout << endl;
-	}
-	
-	for (int k=0; k<Nl-1; k++) // layer-layer
-	{
-		cout << endl;
-		for (int j=0; j<Np; j++)
-		{
-			for (int i=0; i<Np; i++)
-			{
-				double ww = nnetworks[fittest].getWeight(k+1,i,j);
-				cout << scientific << setprecision(2) << setw(10) << ww;
-			}
-			cout << endl;
-		}
-	}
-	
-	cout << endl;
-	for (int j=0; j<Np; j++) // layer-output
-	{
-		for (int i=0; i<No; i++)
-		{
-			double ww = nnetworks[fittest].getWeight(Nl,i,j);
-			cout << scientific << setprecision(2) << setw(10) << ww;
-		}
-		cout << endl;
-	}
-	
-	cout << endl;
-	cout << "Network biases (fittest):" << endl;
-	
-	cout << endl;
-	for (int i=0; i<Np; i++) // sensor-layer
-	{
-		double bb = nnetworks[fittest].getBias(0,i);
-		cout << scientific << setprecision(2) << setw(10) << bb;
-	}
-	cout << endl;
-	
-	for (int k=0; k<Nl-1; k++) // layer-layer
-	{
-		cout << endl;
-		for (int i=0; i<Np; i++)
-		{
-			double bb = nnetworks[fittest].getBias(k+1,i);
-			cout << scientific << setprecision(2) << setw(10) << bb;
-		}
-		cout << endl;
-	}
-	
-	cout << endl;
-	for (int i=0; i<No; i++) // layer-output
-	{
-		double bb = nnetworks[fittest].getBias(Nl,i);
-		cout << scientific << setprecision(2) << setw(10) << bb;
-	}
-	cout << endl;
-	cout << endl;
-	*/
-	
-	/*
-	for (double ang = -1.0; ang<=1.0; ang+=0.2)
-	{
-		vector<double> sensors(1,ang);
-		vector<double> outputs = nnetworks[fittest].eval(sensors);
-		
-		cout << "Test eval on {";
-		for (double val : sensors) cout << setw(5) << val << " "; cout << "}: ";
-		for (double val : outputs) cout << setw(5) << val << " "; cout << endl;
-	}
-	*/
 	
 	// Save best neural network
 	

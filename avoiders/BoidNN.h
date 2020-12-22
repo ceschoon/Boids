@@ -43,9 +43,14 @@ class BoidNN : public Boid
 		targetX_ = 0.0;
 		targetY_ = 0.0;
 		
-		sensors_ = vector<double>(1,0);
+		score_ = 0.0;
+		wdist_ = 0.1;
+		wtime_ = 0.1;
+		
+		sensors_ = vector<double>(2,0);
 	}
 	
+	double getScore() {return score_;}
 	double getTargetX() {return targetX_;}
 	double getTargetY() {return targetY_;}
 	
@@ -72,6 +77,16 @@ class BoidNN : public Boid
 		}
 	}
 	
+	void updateScore(double dt)
+	{
+		// lower score if the boid is far from the target
+		double dist = distance(x,y,targetX_,targetY_);
+		if (!reachedTarget_) score_ -= dt * wdist_ * dist;
+		
+		// lower score if the boid takes time to reach the target
+		if (!reachedTarget_) score_ -= dt * wtime_ * chrono_;
+	}
+	
 	void setNNetwork(NeuralNetwork *nnetwork) {nnetwork_ = nnetwork;}
 	
 	virtual void computeSensorialInput(const vector<Boid> &boids, const vector<Wall> &walls)
@@ -80,8 +95,15 @@ class BoidNN : public Boid
 		// target. We use the cosine of the angle it makes with the target.
 		
 		double angleWithTarget = angleDifference(angle(x,y,targetX_,targetY_),orientation());
-		//sensors_[0] = sin(angleWithTarget);
 		sensors_[0] = angleWithTarget/180.0;
+		
+		// Second sensors is the distance to the target, normalised with a
+		// max value
+		
+		double distToTarget = distance(x,y,targetX_,targetY_);
+		double distMax = 100.0;
+		sensors_[1] = distToTarget/distMax;
+		
 		
 		// The next N sensors are the distance to the first intersection
 		// between a wall and rays covering the field of view of the boid.
@@ -140,6 +162,10 @@ class BoidNN : public Boid
 	double chrono_;
 	double targetX_;
 	double targetY_;
+	
+	double score_;
+	double wdist_; // weight for distance to target in score calculation
+	double wtime_; // weight for time to reach target (chrono_)
 	
 	vector<double> sensors_;
 	
