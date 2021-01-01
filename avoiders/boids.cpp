@@ -84,6 +84,9 @@ void run_generation(sf::RenderWindow &window, WindowParams &pwindow,
 void renderGenerationInfo(sf::RenderWindow &window, int numGen);
 void renderBoidAndTarget(sf::RenderWindow &window, BoidNN boid, 
                          double scaleX, double scaleY);
+void renderTargets(sf::RenderWindow &window, vector<BoidNN> boids, 
+                         double scaleX, double scaleY);
+
 
 int main(int argc, char **argv)
 {
@@ -246,8 +249,8 @@ void run_generation(sf::RenderWindow &window, WindowParams &pwindow,
 			double angl = 2*PI*dist01(gen);
 			double R = min(pworld.sizeX/2.0,pworld.sizeY/2.0);
 			
-			x = R * cos(angl);
-			y = R * sin(angl);
+			x = R * cos(angl) + boids[i].getPosX();
+			y = R * sin(angl) + boids[i].getPosY();
 		}
 		
 		boids[i].setTarget(x,y);
@@ -341,8 +344,28 @@ void run_generation(sf::RenderWindow &window, WindowParams &pwindow,
 				t += t_step;
 				
 				// boid target detection
-				for (int i=0; i<boids.size(); i++) boids[i].detectTarget(t_step,0.3);
-				
+				for (int i=0; i<boids.size(); i++)
+				{
+					double time = boids[i].detectTarget(t_step,0.3);
+					
+					// if boid reached target, place a new target to catch
+					// and increase score 
+					/*if (time>0)
+					{
+						double x,y; x=y=-1;
+						while (x<0 || y<0 || x>pworld.sizeX || y>pworld.sizeY)
+						{
+							double angl = 2*PI*dist01(gen);
+							double R = min(pworld.sizeX/2.0,pworld.sizeY/2.0);
+							
+							x = R * cos(angl) + boids[i].getPosX();
+							y = R * sin(angl) + boids[i].getPosY();
+						}
+						
+						boids[i].setTarget(x,y);
+						boids[i].rewardTargetCaught();
+					}*/
+				}
 				// boid score update
 				for (int i=0; i<boids.size(); i++) boids[i].updateScore(t_step);
 			}
@@ -355,6 +378,7 @@ void run_generation(sf::RenderWindow &window, WindowParams &pwindow,
 			window.clear(sf::Color::White);
 			world.render(window);
 			//world.renderDebug(window,0,true);
+			//renderTargets(window, boids, scaleX, scaleY);
 			renderBoidAndTarget(window, boids[0], scaleX, scaleY);
 			renderGenerationInfo(window, numGen);
 			window.display();
@@ -446,6 +470,21 @@ void renderBoidAndTarget(sf::RenderWindow &window, BoidNN boid,
 	
 	circleTarget.setPosition(sf::Vector2f(boid.getTargetX()*scaleX,boid.getTargetY()*scaleY));
 	window.draw(circleTarget);
+}
+
+
+void renderTargets(sf::RenderWindow &window, vector<BoidNN> boids, double scaleX, double scaleY)
+{
+	sf::CircleShape circleTarget(1);
+	circleTarget.setScale(0.5*scaleX*0.3,0.5*scaleY*0.3);
+	circleTarget.setOrigin(1,1);
+	circleTarget.setFillColor(sf::Color::Blue);
+
+	for (int i=0; i<boids.size(); i++)
+	{
+		circleTarget.setPosition(sf::Vector2f(boids[i].getTargetX()*scaleX,boids[i].getTargetY()*scaleY));
+		window.draw(circleTarget);
+	}
 }
 
 

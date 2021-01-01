@@ -46,6 +46,7 @@ class BoidNN : public Boid
 		score_ = 0.0;
 		wdist_ = 0.1;
 		wtime_ = 0.1;
+		wtarget_ = 10;
 		
 		sensors_ = vector<double>(2,0);
 	}
@@ -76,6 +77,8 @@ class BoidNN : public Boid
 			return -1.0;
 		}
 	}
+	
+	void rewardTargetCaught() {score_ += wtarget_;}
 	
 	void updateScore(double dt)
 	{
@@ -166,6 +169,7 @@ class BoidNN : public Boid
 	double score_;
 	double wdist_; // weight for distance to target in score calculation
 	double wtime_; // weight for time to reach target (chrono_)
+	double wtarget_; // reward for catching a target
 	
 	vector<double> sensors_;
 	
