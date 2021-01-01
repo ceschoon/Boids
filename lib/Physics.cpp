@@ -280,7 +280,7 @@ void World::advanceTime(double T, double dt)
 		
 		// Update neighbour list (only once in a while)
 		
-		if ((int (t/dt))%4==0)
+		//if ((int (t/dt))%4==0)
 		{
 			#pragma omp parallel for
 			for (int i=0; i<boids_.size(); i++)
