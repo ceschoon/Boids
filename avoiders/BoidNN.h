@@ -39,6 +39,7 @@ class BoidNN : public Boid
 		// Initialisations of attributes
 		
 		reachedTarget_ = false;
+		rewarded_ = false;
 		chrono_ = 0.0;
 		targetX_ = 0.0;
 		targetY_ = 0.0;
@@ -58,6 +59,7 @@ class BoidNN : public Boid
 	void setTarget(double x, double y) 
 	{
 		reachedTarget_ = false;
+		rewarded_ = false;
 		chrono_ = 0.0;
 		targetX_ = x;
 		targetY_ = y;
@@ -78,7 +80,11 @@ class BoidNN : public Boid
 		}
 	}
 	
-	void rewardTargetCaught() {score_ += wtarget_;}
+	void rewardTargetCaught()
+	{
+		if(!rewarded_) score_ += wtarget_;
+		rewarded_ = true;
+	}
 	
 	void updateScore(double dt)
 	{
@@ -162,6 +168,7 @@ class BoidNN : public Boid
 	protected:
 	
 	bool reachedTarget_;
+	bool rewarded_;
 	double chrono_;
 	double targetX_;
 	double targetY_;

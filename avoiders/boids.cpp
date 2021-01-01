@@ -80,7 +80,8 @@ struct WindowParams
 
 
 void run_generation(sf::RenderWindow &window, WindowParams &pwindow,
-                    NNParams pnn, WorldParams pworld, int numGen, double simTime);
+                    NNParams pnn, WorldParams pworld, int numGen, 
+                    double simTime, double &bestScore);
 void renderGenerationInfo(sf::RenderWindow &window, int numGen);
 void renderBoidAndTarget(sf::RenderWindow &window, BoidNN boid, 
                          double scaleX, double scaleY);
@@ -167,7 +168,7 @@ int main(int argc, char **argv)
 	
 	// Create neural network and other parameter structures
 	
-	double noiseStd = 0.1; readOption(argc, argv, "noiseStd", noiseStd);
+	double noiseStd = 0.5; readOption(argc, argv, "noiseStd", noiseStd);
 	
 	struct NNParams pnn = {0.0, noiseStd, nnfilename};
 	struct WorldParams pworld = {seed, nBoids, boxSizeX, boxSizeY, avgWalls};
@@ -176,11 +177,12 @@ int main(int argc, char **argv)
 	// Call simulation for first generation
 	
 	int numGen = 1;
-	double simTime = 30; readOption(argc, argv, "simTime", simTime);
+	double simTime = 10; readOption(argc, argv, "simTime", simTime);
+	double bestScore = -10.0;
 	
 	while (window.isOpen())
 	{
-		run_generation(window, pwindow, pnn, pworld, numGen, simTime);
+		run_generation(window, pwindow, pnn, pworld, numGen, simTime, bestScore);
 		numGen ++;
 		pworld.seed = pworld.seed + 1;
 	}
@@ -192,7 +194,8 @@ int main(int argc, char **argv)
 
 
 void run_generation(sf::RenderWindow &window, WindowParams &pwindow,
-                    NNParams pnn, WorldParams pworld, int numGen, double simTime)
+                    NNParams pnn, WorldParams pworld, int numGen, 
+                    double simTime, double &bestScore)
 {
 	//////////////////////////// Initialisation ////////////////////////////
 	
@@ -222,8 +225,13 @@ void run_generation(sf::RenderWindow &window, WindowParams &pwindow,
 	
 	for (int i=0; i<pworld.nBoids; i++) 
 	{
-		nnetworks[i].perturbWeights(pnn.noiseMean, pnn.noiseStd);
-		nnetworks[i].perturbBiases(pnn.noiseMean, pnn.noiseStd);
+		// TODO temporary (annealing)
+		double mean = 0.0;
+		double std = pnn.noiseStd*abs(bestScore/10.0);
+		if (bestScore > 0) std = pnn.noiseStd * 0.1;
+		
+		nnetworks[i].perturbWeights(mean, std);
+		nnetworks[i].perturbBiases(mean, std);
 		
 		// TODO temporary (restrict degrees of freedom)
 		nnetworks[i].setWeight(0,0,0,1.0);
@@ -350,9 +358,9 @@ void run_generation(sf::RenderWindow &window, WindowParams &pwindow,
 					
 					// if boid reached target, place a new target to catch
 					// and increase score 
-					/*if (time>0)
+					if (time>0)
 					{
-						double x,y; x=y=-1;
+						/*double x,y; x=y=-1;
 						while (x<0 || y<0 || x>pworld.sizeX || y>pworld.sizeY)
 						{
 							double angl = 2*PI*dist01(gen);
@@ -362,9 +370,9 @@ void run_generation(sf::RenderWindow &window, WindowParams &pwindow,
 							y = R * sin(angl) + boids[i].getPosY();
 						}
 						
-						boids[i].setTarget(x,y);
+						boids[i].setTarget(x,y);*/
 						boids[i].rewardTargetCaught();
-					}*/
+					}
 				}
 				// boid score update
 				for (int i=0; i<boids.size(); i++) boids[i].updateScore(t_step);
@@ -398,7 +406,7 @@ void run_generation(sf::RenderWindow &window, WindowParams &pwindow,
 	// Detect fittest
 	
 	int fittest = 0;
-	double bestScore = boids[0].getScore();
+	bestScore = boids[0].getScore();
 	
 	for (int i=0; i<boids.size(); i++)
 	{
