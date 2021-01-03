@@ -13,16 +13,16 @@
 ////////////////////////////////////////////////////////////////////////////
 
 
-// TODO: Remove all interaction between boids (repulsion optional in lib)
 // TODO: Encapsulate generation run as function of N variables to minimise
 // TODO: Add penalty for bumping into walls ? How ?
 
 // Idea: Variant where the target follows the boid (i.e. as a predator)
 //       and the boid must avoid it.
 
-// TODO: ? network statistics for monitoring ?
-// TODO: perturb one or few weights at a time
-// TODO: remember direction (i.e. which weight) of the improvement
+// Better minimisation? - Use standard min algo? (i.e. gradient descent)
+//                      - perturb one or few weights at a time?
+//                      - remember direction of the improvement 
+//                        (i.e. which weight) 
 
 
 #include <SFML/Graphics.hpp>
@@ -38,6 +38,7 @@
 #include "Rendering.h"
 #include "NeuralNetwork.h"
 #include "myoptions.h"
+
 
 using namespace std;
 using namespace std::chrono;
@@ -161,7 +162,7 @@ int main(int argc, char **argv)
 	
 	// Create neural network and other parameter structures
 	
-	double noiseStd = 0.5; readOption(argc, argv, "noiseStd", noiseStd);
+	double noiseStd = 0.05; readOption(argc, argv, "noiseStd", noiseStd);
 	
 	struct NNParams pnn = {0.0, noiseStd, nnfilename};
 	struct WorldParams pworld = {seed, nBoids, boxSizeX, boxSizeY, avgWalls};
@@ -218,21 +219,28 @@ void run_generation(sf::RenderWindow &window, WindowParams &pwindow,
 	
 	for (int i=0; i<pworld.nBoids; i++) 
 	{
-		// TODO temporary (annealing)
+		// "Annealing method": We adapt the noise intensity depending on
+		// the score of the boid. If it is bad (very negative) we use a 
+		// large value of the noise.
+		
 		double mean = 0.0;
-		double std = pnn.noiseStd*abs(bestScore/10.0);
-		if (bestScore > 0) std = pnn.noiseStd * 0.1;
+		double std = pnn.noiseStd;
+		if (bestScore < 0) std *= abs(bestScore);
 		
 		nnetworks[i].perturbWeights(mean, std);
 		nnetworks[i].perturbBiases(mean, std);
 		
-		// TODO temporary (restrict degrees of freedom)
+		/////////////////////////////////////////
+		// Restrict degrees of freedom (implementation requires intermediate
+		// layer but these are unnecessary neurons). Therefore we directly
+		// copy the value of the sensors in the intermediate layer.
 		nnetworks[i].setWeight(0,0,0,1.0);
 		nnetworks[i].setWeight(0,0,1,0.0);
 		nnetworks[i].setWeight(0,1,0,0.0);
 		nnetworks[i].setWeight(0,1,1,1.0);
 		nnetworks[i].setBias(0,0,0.0);
 		nnetworks[i].setBias(0,1,0.0);
+		/////////////////////////////////////////
 		
 		boids[i].setNNetwork(&nnetworks[i]);
 	}
