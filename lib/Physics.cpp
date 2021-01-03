@@ -278,15 +278,12 @@ void World::advanceTime(double T, double dt)
 		for (int i=0; i<boids_.size(); i++) boids_[i]->step(dt);
 		collideWalls(boidsOld);
 		
-		// Update neighbour list (only once in a while)
+		// Update neighbour list
 		
-		//if ((int (t/dt))%4==0)
+		#pragma omp parallel for
+		for (int i=0; i<boids_.size(); i++)
 		{
-			#pragma omp parallel for
-			for (int i=0; i<boids_.size(); i++)
-			{
-				boids_[i]->updateNeighbours(getBoids(), walls_);
-			}
+			boids_[i]->updateNeighbours(getBoids(), walls_);
 		}
 	}
 }

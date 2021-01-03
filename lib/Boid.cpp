@@ -44,6 +44,8 @@ Boid::Boid(double x_, double y_, double orientation_, double v_)
 	viewRange = 10;      // default = 10
 	obstacleRange = 5;   // default = 5
 	viewAngle = 120;     // default = 120
+	
+	doBoidRepulsion = true;
 }
 
 
@@ -63,7 +65,7 @@ void Boid::computePhysicalForces(const vector<Boid> &boids, const vector<Wall> &
 	double fx_ = 0; double fy_ = 0;
 	
 	computeDragForce(boids, fx_, fy_);
-	computeSeparationForce(boids, fx_, fy_);
+	if(doBoidRepulsion) computeSeparationForce(boids, fx_, fy_);
 	
 	// update the Boid forces
 	

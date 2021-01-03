@@ -88,6 +88,8 @@ class Boid
 		double viewRange;
 		double obstacleRange;
 		double viewAngle;
+		
+		bool doBoidRepulsion;
 };
 
 
