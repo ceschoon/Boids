@@ -36,6 +36,8 @@ class BoidNN : public Boid
 		obstacleRange = 5;   // default = 5
 		viewAngle = 120;     // default = 120
 		
+		doBoidRepulsion = false;
+		
 		// Initialisations of attributes
 		
 		reachedTarget_ = false;
