@@ -3,7 +3,7 @@ lib/*.a
 lib/*.so
 
 simulation/boids
-avoiders/boids
+seekers-basic/boids
 
 *.dat
 *.mp4

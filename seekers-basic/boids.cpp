@@ -13,23 +13,13 @@
 ////////////////////////////////////////////////////////////////////////////
 
 
-// Note: The boids do not perform better than simply going forward.
-//       I believe the networks do not improve because the boids randomly 
-//       step on the target too frequently. I should make the evaluation
-//       more difficult so that they can hardly pass it by chance.
+// TODO: Remove all interaction between boids (repulsion optional in lib)
+// TODO: Encapsulate generation run as function of N variables to minimise
+// TODO: Add penalty for bumping into walls ? How ?
 
-//       Problem: With the walls it could happen than a target is in a
-//       closed region that the boid cannot access. Using a test with 
-//       multiple targets could make it impossible to pass or would once
-//       again be passed by chance by the boids whose all targets were 
-//       accessible.
+// Idea: Variant where the target follows the boid (i.e. as a predator)
+//       and the boid must avoid it.
 
-//       Solution: Place targets iteratively on rays starting from the boid.
-
-// TODO: First of all, try to train boid with 1 sensor (direction of target)
-//       in a box without walls.
-
-// TODO: Best evaluation: get multiple targets one after the other ? (max count wins)
 // TODO: ? network statistics for monitoring ?
 // TODO: perturb one or few weights at a time
 // TODO: remember direction (i.e. which weight) of the improvement
@@ -83,10 +73,14 @@ struct WindowParams
 
 
 void run_generation(sf::RenderWindow &window, WindowParams &pwindow,
-                    NNParams pnn, WorldParams pworld, int numGen, double simTime);
+                    NNParams pnn, WorldParams pworld, int numGen, 
+                    double simTime, double &bestScore);
 void renderGenerationInfo(sf::RenderWindow &window, int numGen);
 void renderBoidAndTarget(sf::RenderWindow &window, BoidNN boid, 
                          double scaleX, double scaleY);
+void renderTargets(sf::RenderWindow &window, vector<BoidNN> boids, 
+                         double scaleX, double scaleY);
+
 
 int main(int argc, char **argv)
 {
@@ -95,7 +89,7 @@ int main(int argc, char **argv)
 	string versionCode = "1.0.0";
 	if (detectOption(argc, argv, "version"))
 	{
-		cout << "Boids Avoiders, version " << versionCode << endl;
+		cout << "Boids (seekers basic), version " << versionCode << endl;
 		cout << endl;
 		
 		return 0;
@@ -119,11 +113,12 @@ int main(int argc, char **argv)
 		cout << "          windowSizeY     int              size of the window           " << endl;
 		cout << "          simTime         double           simulation time for one gen  " << endl;
 		cout << "          noiseStd        double           noise std on copies of nn    " << endl;
+		cout << "          initNNFile      string           file for nn initialisation   " << endl;
 		cout << endl;
 		cout << "Controls:   Press Space to pause the simulation   " << endl;
 		cout << "            Press S to slow down the simulation   " << endl;
 		cout << "            Press A to accelerate the simulation  " << endl;
-		cout << "            Press M to accelerate the simulation (max speed)  " << endl;
+		cout << "            Press M to run the simulation at max speed  " << endl;
 		cout << endl;
 		
 		return 0;
@@ -143,12 +138,15 @@ int main(int argc, char **argv)
 	
 	double boxSizeX = 30; readOption(argc, argv, "boxSizeX", boxSizeX);
 	double boxSizeY = 30; readOption(argc, argv, "boxSizeY", boxSizeY);
-	double avgWalls = 4;  readOption(argc, argv, "avgWalls", avgWalls);
+	double avgWalls = 0;  readOption(argc, argv, "avgWalls", avgWalls);
 	
 	// Base Neural Network
 	
-	NeuralNetwork nnetwork(6,2,5,2,seed);
-	nnetwork.initRandom();
+	NeuralNetwork nnetwork(2,1,2,2,seed);
+	
+	string nninitfilename = ""; readOption(argc, argv, "initNNFile", nninitfilename);
+	if (nninitfilename.empty()) nnetwork.initRandom();
+	else nnetwork.loadFromFile(nninitfilename);
 	
 	string nnfilename = "nnetwork.dat";
 	nnetwork.saveToFile(nnfilename);
@@ -158,12 +156,12 @@ int main(int argc, char **argv)
 	int windowSizeX = 600; readOption(argc, argv, "windowSizeX", windowSizeX);
 	int windowSizeY = 600; readOption(argc, argv, "windowSizeY", windowSizeY);
 	
-	sf::RenderWindow window(sf::VideoMode(windowSizeX,windowSizeY),"Boids - Avoiders");
+	sf::RenderWindow window(sf::VideoMode(windowSizeX,windowSizeY),"Boids - Seekers (basic)");
 	window.setFramerateLimit(30);
 	
 	// Create neural network and other parameter structures
 	
-	double noiseStd = 0.001; readOption(argc, argv, "noiseStd", noiseStd);
+	double noiseStd = 0.5; readOption(argc, argv, "noiseStd", noiseStd);
 	
 	struct NNParams pnn = {0.0, noiseStd, nnfilename};
 	struct WorldParams pworld = {seed, nBoids, boxSizeX, boxSizeY, avgWalls};
@@ -172,11 +170,12 @@ int main(int argc, char **argv)
 	// Call simulation for first generation
 	
 	int numGen = 1;
-	double simTime = 30; readOption(argc, argv, "simTime", simTime);
+	double simTime = 10; readOption(argc, argv, "simTime", simTime);
+	double bestScore = -10.0;
 	
 	while (window.isOpen())
 	{
-		run_generation(window, pwindow, pnn, pworld, numGen, simTime);
+		run_generation(window, pwindow, pnn, pworld, numGen, simTime, bestScore);
 		numGen ++;
 		pworld.seed = pworld.seed + 1;
 	}
@@ -188,7 +187,8 @@ int main(int argc, char **argv)
 
 
 void run_generation(sf::RenderWindow &window, WindowParams &pwindow,
-                    NNParams pnn, WorldParams pworld, int numGen, double simTime)
+                    NNParams pnn, WorldParams pworld, int numGen, 
+                    double simTime, double &bestScore)
 {
 	//////////////////////////// Initialisation ////////////////////////////
 	
@@ -218,8 +218,21 @@ void run_generation(sf::RenderWindow &window, WindowParams &pwindow,
 	
 	for (int i=0; i<pworld.nBoids; i++) 
 	{
-		nnetworks[i].perturbWeights(pnn.noiseMean, pnn.noiseStd);
-		nnetworks[i].perturbBiases(pnn.noiseMean, pnn.noiseStd);
+		// TODO temporary (annealing)
+		double mean = 0.0;
+		double std = pnn.noiseStd*abs(bestScore/10.0);
+		if (bestScore > 0) std = pnn.noiseStd * 0.1;
+		
+		nnetworks[i].perturbWeights(mean, std);
+		nnetworks[i].perturbBiases(mean, std);
+		
+		// TODO temporary (restrict degrees of freedom)
+		nnetworks[i].setWeight(0,0,0,1.0);
+		nnetworks[i].setWeight(0,0,1,0.0);
+		nnetworks[i].setWeight(0,1,0,0.0);
+		nnetworks[i].setWeight(0,1,1,1.0);
+		nnetworks[i].setBias(0,0,0.0);
+		nnetworks[i].setBias(0,1,0.0);
 		
 		boids[i].setNNetwork(&nnetworks[i]);
 	}
@@ -237,8 +250,8 @@ void run_generation(sf::RenderWindow &window, WindowParams &pwindow,
 			double angl = 2*PI*dist01(gen);
 			double R = min(pworld.sizeX/2.0,pworld.sizeY/2.0);
 			
-			x = R * cos(angl);
-			y = R * sin(angl);
+			x = R * cos(angl) + boids[i].getPosX();
+			y = R * sin(angl) + boids[i].getPosY();
 		}
 		
 		boids[i].setTarget(x,y);
@@ -332,7 +345,30 @@ void run_generation(sf::RenderWindow &window, WindowParams &pwindow,
 				t += t_step;
 				
 				// boid target detection
-				for (int i=0; i<boids.size(); i++) boids[i].detectTarget(t_step,0.3);
+				for (int i=0; i<boids.size(); i++)
+				{
+					double time = boids[i].detectTarget(t_step,0.3);
+					
+					// if boid reached target, place a new target to catch
+					// and increase score 
+					if (time>0)
+					{
+						double x,y; x=y=-1;
+						while (x<0 || y<0 || x>pworld.sizeX || y>pworld.sizeY)
+						{
+							double angl = 2*PI*dist01(gen);
+							double R = min(pworld.sizeX/2.0,pworld.sizeY/2.0);
+							
+							x = R * cos(angl) + boids[i].getPosX();
+							y = R * sin(angl) + boids[i].getPosY();
+						}
+						
+						boids[i].setTarget(x,y);
+						boids[i].rewardTargetCaught();
+					}
+				}
+				// boid score update
+				for (int i=0; i<boids.size(); i++) boids[i].updateScore(t_step);
 			}
 			
 			/////////////////////////// Rendering //////////////////////////
@@ -343,6 +379,7 @@ void run_generation(sf::RenderWindow &window, WindowParams &pwindow,
 			window.clear(sf::Color::White);
 			world.render(window);
 			//world.renderDebug(window,0,true);
+			//renderTargets(window, boids, scaleX, scaleY);
 			renderBoidAndTarget(window, boids[0], scaleX, scaleY);
 			renderGenerationInfo(window, numGen);
 			window.display();
@@ -362,26 +399,32 @@ void run_generation(sf::RenderWindow &window, WindowParams &pwindow,
 	// Detect fittest
 	
 	int fittest = 0;
-	double bestTime = boids[0].detectTarget(0.0);
+	bestScore = boids[0].getScore();
 	
 	for (int i=0; i<boids.size(); i++)
 	{
-		double time = boids[i].detectTarget(0.0);
+		double score = boids[i].getScore();
 		
-		if (bestTime<0 || (time<bestTime && time>0))
+		if (score > bestScore)
 		{
 			fittest = i;
-			bestTime = boids[i].detectTarget(0.0);
+			bestScore = score;
 		}
 	}
 	
 	// Debug info
 	
 	cout << "----------------------------------------------------" << endl;
-	cout << "Generation " << numGen << ": best time is " << bestTime << endl,
+	cout << "Generation " << numGen << ": best score is " << bestScore << endl,
 	
-	cout << "All times are ";
-	for (int i=0; i<boids.size(); i++) cout << boids[i].detectTarget(0.0) << " ";
+	cout << fixed << setprecision(1);
+	
+	cout << "All scores are ";
+	for (int i=0; i<boids.size(); i++) cout << setw(6) << boids[i].getScore() << " ";
+	cout << endl;
+	
+	cout << "All times are  ";
+	for (int i=0; i<boids.size(); i++) cout << setw(6) << boids[i].detectTarget(0.0) << " ";
 	cout << endl;
 	
 	// Save best neural network
@@ -428,6 +471,21 @@ void renderBoidAndTarget(sf::RenderWindow &window, BoidNN boid,
 	
 	circleTarget.setPosition(sf::Vector2f(boid.getTargetX()*scaleX,boid.getTargetY()*scaleY));
 	window.draw(circleTarget);
+}
+
+
+void renderTargets(sf::RenderWindow &window, vector<BoidNN> boids, double scaleX, double scaleY)
+{
+	sf::CircleShape circleTarget(1);
+	circleTarget.setScale(0.5*scaleX*0.3,0.5*scaleY*0.3);
+	circleTarget.setOrigin(1,1);
+	circleTarget.setFillColor(sf::Color::Blue);
+
+	for (int i=0; i<boids.size(); i++)
+	{
+		circleTarget.setPosition(sf::Vector2f(boids[i].getTargetX()*scaleX,boids[i].getTargetY()*scaleY));
+		window.draw(circleTarget);
+	}
 }
 
 

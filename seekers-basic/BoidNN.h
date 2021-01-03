@@ -6,6 +6,7 @@
 #include "Boid.h"
 #include "Physics.h"
 #include "NeuralNetwork.h"
+#include "Math.h"
 
 
 using namespace std;
@@ -38,19 +39,27 @@ class BoidNN : public Boid
 		// Initialisations of attributes
 		
 		reachedTarget_ = false;
+		rewarded_ = false;
 		chrono_ = 0.0;
 		targetX_ = 0.0;
 		targetY_ = 0.0;
 		
-		sensors_ = vector<double>(4,0);
+		score_ = 0.0;
+		wdist_ = 0.1;
+		wtime_ = 0.1;
+		wtarget_ = 10;
+		
+		sensors_ = vector<double>(2,0);
 	}
 	
+	double getScore() {return score_;}
 	double getTargetX() {return targetX_;}
 	double getTargetY() {return targetY_;}
 	
 	void setTarget(double x, double y) 
 	{
 		reachedTarget_ = false;
+		rewarded_ = false;
 		chrono_ = 0.0;
 		targetX_ = x;
 		targetY_ = y;
@@ -71,6 +80,22 @@ class BoidNN : public Boid
 		}
 	}
 	
+	void rewardTargetCaught()
+	{
+		if(!rewarded_) score_ += wtarget_;
+		rewarded_ = true;
+	}
+	
+	void updateScore(double dt)
+	{
+		// lower score if the boid is far from the target
+		double dist = distance(x,y,targetX_,targetY_);
+		if (!reachedTarget_) score_ -= dt * wdist_ * dist;
+		
+		// lower score if the boid takes time to reach the target
+		if (!reachedTarget_) score_ -= dt * wtime_ * chrono_;
+	}
+	
 	void setNNetwork(NeuralNetwork *nnetwork) {nnetwork_ = nnetwork;}
 	
 	virtual void computeSensorialInput(const vector<Boid> &boids, const vector<Wall> &walls)
@@ -78,12 +103,20 @@ class BoidNN : public Boid
 		// First sensor is a measure of how close the boid points to its 
 		// target. We use the cosine of the angle it makes with the target.
 		
-		double angleWithTarget = angle(x,y,targetX_,targetY_) - orientation();
-		sensors_[0] = cos(angleWithTarget);
+		double angleWithTarget = angleDifference(angle(x,y,targetX_,targetY_),orientation());
+		sensors_[0] = angleWithTarget/180.0;
+		
+		// Second sensors is the distance to the target, normalised with a
+		// max value
+		
+		double distToTarget = distance(x,y,targetX_,targetY_);
+		double distMax = 100.0;
+		sensors_[1] = distToTarget/distMax;
+		
 		
 		// The next N sensors are the distance to the first intersection
 		// between a wall and rays covering the field of view of the boid.
-		
+		/*
 		int N=3;
 		for (int i=0; i<N; i++)
 		{
@@ -110,6 +143,7 @@ class BoidNN : public Boid
 			
 			sensors_[i] = 2*distMin/obstacleRange - 1;
 		}
+		*/
 	}
 	
 	virtual void computeBehaviouralForces(const vector<Boid> &boids, const vector<Wall> &walls)
@@ -134,9 +168,15 @@ class BoidNN : public Boid
 	protected:
 	
 	bool reachedTarget_;
+	bool rewarded_;
 	double chrono_;
 	double targetX_;
 	double targetY_;
+	
+	double score_;
+	double wdist_; // weight for distance to target in score calculation
+	double wtime_; // weight for time to reach target (chrono_)
+	double wtarget_; // reward for catching a target
 	
 	vector<double> sensors_;
 	
