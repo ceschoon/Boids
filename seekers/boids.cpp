@@ -13,20 +13,13 @@
 ////////////////////////////////////////////////////////////////////////////
 
 
-// Note: The boids do not improve because the evaluation is not progresive.
-//       Either you get the target (which is unlikely for a random network)
-//       or you don't and all the variations, including the slightly better
-//       ones, receive the same score. 
-//       -> Now better by using the distance to target in the evaluation.
-
-// TODO: Make a better evaluation for the same objective (catching targets)
-//       e.g. Better score as the boid approches the target + many targets
-//       Add penalty for bumping into walls
+// TODO: Remove all interaction between boids (repulsion optional in lib)
+// TODO: Encapsulate generation run as function of N variables to minimise
+// TODO: Add penalty for bumping into walls ? How ?
 
 // Idea: Variant where the target follows the boid (i.e. as a predator)
 //       and the boid must avoid it.
 
-// TODO: Best evaluation: get multiple targets one after the other ? (max count wins)
 // TODO: ? network statistics for monitoring ?
 // TODO: perturb one or few weights at a time
 // TODO: remember direction (i.e. which weight) of the improvement
@@ -96,7 +89,7 @@ int main(int argc, char **argv)
 	string versionCode = "1.0.0";
 	if (detectOption(argc, argv, "version"))
 	{
-		cout << "Boids Avoiders, version " << versionCode << endl;
+		cout << "Boids (seekers basic), version " << versionCode << endl;
 		cout << endl;
 		
 		return 0;
@@ -125,7 +118,7 @@ int main(int argc, char **argv)
 		cout << "Controls:   Press Space to pause the simulation   " << endl;
 		cout << "            Press S to slow down the simulation   " << endl;
 		cout << "            Press A to accelerate the simulation  " << endl;
-		cout << "            Press M to accelerate the simulation (max speed)  " << endl;
+		cout << "            Press M to run the simulation at max speed  " << endl;
 		cout << endl;
 		
 		return 0;
@@ -163,7 +156,7 @@ int main(int argc, char **argv)
 	int windowSizeX = 600; readOption(argc, argv, "windowSizeX", windowSizeX);
 	int windowSizeY = 600; readOption(argc, argv, "windowSizeY", windowSizeY);
 	
-	sf::RenderWindow window(sf::VideoMode(windowSizeX,windowSizeY),"Boids - Avoiders");
+	sf::RenderWindow window(sf::VideoMode(windowSizeX,windowSizeY),"Boids - Seekers (basic)");
 	window.setFramerateLimit(30);
 	
 	// Create neural network and other parameter structures
@@ -360,7 +353,7 @@ void run_generation(sf::RenderWindow &window, WindowParams &pwindow,
 					// and increase score 
 					if (time>0)
 					{
-						/*double x,y; x=y=-1;
+						double x,y; x=y=-1;
 						while (x<0 || y<0 || x>pworld.sizeX || y>pworld.sizeY)
 						{
 							double angl = 2*PI*dist01(gen);
@@ -370,7 +363,7 @@ void run_generation(sf::RenderWindow &window, WindowParams &pwindow,
 							y = R * sin(angl) + boids[i].getPosY();
 						}
 						
-						boids[i].setTarget(x,y);*/
+						boids[i].setTarget(x,y);
 						boids[i].rewardTargetCaught();
 					}
 				}
