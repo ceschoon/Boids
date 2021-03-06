@@ -11,13 +11,18 @@
 
 
 #include <iostream>
+#include <iomanip>
+#include <fstream>
 #include <omp.h>
+#include <chrono>
 #include "Physics.h"
 #include "Boid.h"
 #include "Math.h"
 #include "Rendering.h"
 
 using namespace std;
+using namespace std::chrono;
+
 
 
 ///////////////////////////////// World ////////////////////////////////////
@@ -63,26 +68,77 @@ vector<Boid> World::getBoids()
 }
 
 
+/////////////////////////////// Profiling //////////////////////////////////
+
+void World::printProfilingData()
+{
+	ofstream file("profiling.out");
+	file << fixed << setprecision(3);
+	
+	file << "================= Profiling Data ================" << endl;
+	file << endl;
+	file << "calls for render              " << setw(8) << profData_.calls_render << endl;
+	file << "calls for step                " << setw(8) << profData_.calls_step << endl;
+	file << "calls for forces (all)        " << setw(8) << profData_.calls_allforces << endl;
+	file << "calls for updateNeighbours    " << setw(8) << profData_.calls_updateNeighbours << endl;
+	file << "calls for collideWalls        " << setw(8) << profData_.calls_collideWalls << endl;
+	file << "calls for intersection        " << setw(8) << profData_.calls_intersection << endl;
+	file << endl;
+	file << "avg time for render              " << setw(12) << profData_.avg_time_render << " microseconds" << endl;
+	file << "avg time for step                " << setw(12) << profData_.avg_time_step << " microseconds" << endl;
+	file << "avg time for forces (all)        " << setw(12) << profData_.avg_time_allforces << " microseconds" << endl;
+	file << "avg time for updateNeighbours    " << setw(12) << profData_.avg_time_updateNeighbours << " microseconds" << endl;
+	file << "avg time for collideWalls        " << setw(12) << profData_.avg_time_collideWalls << " microseconds" << endl;
+	file << "avg time for intersection        " << setw(12) << profData_.avg_time_intersection << " microseconds" << endl;
+	file << endl;
+	file << "tot time for render              " << setw(12) << 1e-6*profData_.avg_time_render*profData_.calls_render << " seconds" << endl;
+	file << "tot time for step                " << setw(12) << 1e-6*profData_.avg_time_step*profData_.calls_step << " seconds" << endl;
+	file << "tot time for forces (all)        " << setw(12) << 1e-6*profData_.avg_time_allforces*profData_.calls_allforces << " seconds" << endl;
+	file << "tot time for updateNeighbours    " << setw(12) << 1e-6*profData_.avg_time_updateNeighbours*profData_.calls_updateNeighbours << " seconds" << endl;
+	file << "tot time for collideWalls        " << setw(12) << 1e-6*profData_.avg_time_collideWalls*profData_.calls_collideWalls << " seconds" << endl;
+	file << "tot time for intersection        " << setw(12) << 1e-6*profData_.avg_time_intersection*profData_.calls_intersection << " seconds" << endl;
+	file << endl;
+}
+
+
 //////////////////////// World rendering (call) ////////////////////////////
 
 void World::render(sf::RenderWindow &window)
 {
+	steady_clock::time_point start = steady_clock::now();
+	
 	double scaleX = window.getSize().x/sizeX_;
 	double scaleY = window.getSize().y/sizeY_;
 	
 	renderWalls(window, walls_, scaleX, scaleY);
 	renderBoidsAsTriangles(window, getBoids(), scaleX, scaleY);
+	
+	steady_clock::time_point stop = steady_clock::now();
+	//duration<double> time_span = duration_cast<duration<double>>(stop-start);
+	int time_us = duration_cast<microseconds>(stop-start).count();
+	
+	profData_.calls_render ++; int n=profData_.calls_render;
+	profData_.avg_time_render += (time_us-profData_.avg_time_render)/n;
 }
 
 
 void World::renderDebug(sf::RenderWindow &window, int i, bool doForces)
 {
+	steady_clock::time_point start = steady_clock::now();
+	
 	double scaleX = window.getSize().x/sizeX_;
 	double scaleY = window.getSize().y/sizeY_;
 	
 	renderWalls(window, walls_, scaleX, scaleY);
 	renderBoidsHighlight(window, getBoids(), scaleX, scaleY, i);
 	if (doForces) renderForces(window, getBoids(), scaleX, scaleY);
+	
+	steady_clock::time_point stop = steady_clock::now();
+	//duration<double> time_span = duration_cast<duration<double>>(stop-start);
+	int time_us = duration_cast<microseconds>(stop-start).count();
+	
+	profData_.calls_render ++; int n=profData_.calls_render;
+	profData_.avg_time_render += (time_us-profData_.avg_time_render)/n;
 }
 
 ////////////////////////// Wall - Ray mechanics ////////////////////////////
@@ -90,6 +146,8 @@ void World::renderDebug(sf::RenderWindow &window, int i, bool doForces)
 
 void intersection(Ray ray, Wall wall, double &xInt, double &yInt, bool &exists)
 {
+	steady_clock::time_point start = steady_clock::now();
+	
 	exists = true;
 	
 	// this function is called many times, optimise it by
@@ -171,6 +229,13 @@ void intersection(Ray ray, Wall wall, double &xInt, double &yInt, bool &exists)
 			if (sinAngle<0 && yInt>y3) exists = false;
 		}
 	}
+	
+	// profiling: timing
+	steady_clock::time_point stop = steady_clock::now();
+	int time_us = duration_cast<microseconds>(stop-start).count();
+	
+	profData_.calls_intersection ++; int n=profData_.calls_intersection;
+	profData_.avg_time_intersection += (time_us-profData_.avg_time_intersection)/n;
 }
 
 
@@ -262,14 +327,25 @@ void World::advanceTime(double T, double dt)
 {
 	for (double t=0; t<T; t+=dt)
 	{
+		steady_clock::time_point start = steady_clock::now();
+		
 		// Compute forces
 		
 		#pragma omp parallel for
 		for (int i=0; i<boids_.size(); i++)
 		{
+			steady_clock::time_point start2 = steady_clock::now();
+			
 			boids_[i]->resetForce();
 			boids_[i]->computePhysicalForces(getBoids(), walls_);
 			boids_[i]->computeBehaviouralForces(getBoids(), walls_);
+			
+			// profiling: timing
+			steady_clock::time_point stop2 = steady_clock::now();
+			int time_us = duration_cast<microseconds>(stop2-start2).count();
+			
+			profData_.calls_allforces ++; int n=profData_.calls_allforces;
+			profData_.avg_time_allforces += (time_us-profData_.avg_time_allforces)/n;
 		}
 		
 		// Integrate
@@ -285,12 +361,21 @@ void World::advanceTime(double T, double dt)
 		{
 			boids_[i]->updateNeighbours(getBoids(), walls_);
 		}
+		
+		// profiling: timing
+		steady_clock::time_point stop = steady_clock::now();
+		int time_us = duration_cast<microseconds>(stop-start).count();
+		
+		profData_.calls_step ++; int n=profData_.calls_step;
+		profData_.avg_time_step += (time_us-profData_.avg_time_step)/n;
 	}
 }
 
 
 void World::collideWalls(const vector<Boid> &boidsOld)
 {
+	steady_clock::time_point start = steady_clock::now();
+	
 	#pragma omp parallel for
 	for (int i=0; i<boids_.size(); i++)
 	{
@@ -341,6 +426,13 @@ void World::collideWalls(const vector<Boid> &boidsOld)
 			}
 		}
 	}
+	
+	// profiling: timing
+	steady_clock::time_point stop = steady_clock::now();
+	int time_us = duration_cast<microseconds>(stop-start).count();
+	
+	profData_.calls_collideWalls ++; int n=profData_.calls_collideWalls;
+	profData_.avg_time_collideWalls += (time_us-profData_.avg_time_collideWalls)/n;
 }
 
 

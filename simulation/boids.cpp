@@ -239,6 +239,8 @@ int main(int argc, char **argv)
 			//Boid boid = world.getBoid(0);
 			//info(boid);
 			
+			world.printProfilingData();
+			
 			/////////////////////////// Rendering //////////////////////////
 			
 			

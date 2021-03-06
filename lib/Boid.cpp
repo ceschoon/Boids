@@ -11,13 +11,18 @@
 
 
 #include <iostream>
+#include <chrono>
 #include <omp.h>
 #include <cmath>
 #include "Boid.h"
 #include "Physics.h"
 
 using namespace std;
+using namespace std::chrono;
 
+
+// profiling (see Physics.h)
+ProfilingData profData_;
 
 
 Boid::Boid(double x_, double y_, double orientation_, double v_)
@@ -299,6 +304,8 @@ bool Boid::isNeighbour (int index) const
 
 void Boid::updateNeighbours(const vector<Boid> &boids, const vector<Wall> walls)
 {
+	steady_clock::time_point start = steady_clock::now();
+	
 	vector<int> neighboursNew = {};
 	
 	for (int j=0; j<boids.size(); j++)
@@ -342,6 +349,13 @@ void Boid::updateNeighbours(const vector<Boid> &boids, const vector<Wall> walls)
 	}
 	
 	neighbours = neighboursNew;
+	
+	// profiling: timing
+	steady_clock::time_point stop = steady_clock::now();
+	int time_us = duration_cast<microseconds>(stop-start).count();
+	
+	profData_.calls_updateNeighbours ++; int n=profData_.calls_updateNeighbours;
+	profData_.avg_time_updateNeighbours += (time_us-profData_.avg_time_updateNeighbours)/n;
 }
 
 

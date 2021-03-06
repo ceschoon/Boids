@@ -26,6 +26,28 @@ class Wall;
 class Ray;
 
 
+// Profiling data
+struct ProfilingData
+{
+	int calls_render;
+	int calls_step;
+	int calls_allforces;
+	int calls_updateNeighbours;
+	int calls_collideWalls;
+	int calls_intersection;
+	
+	double avg_time_render;
+	double avg_time_step;
+	double avg_time_allforces;
+	double avg_time_updateNeighbours;
+	double avg_time_collideWalls;
+	double avg_time_intersection;
+};
+
+
+extern ProfilingData profData_;
+
+
 /////////////////////////////// World class ////////////////////////////////
 
 
@@ -56,6 +78,9 @@ class World
 		void advanceTime(double T, double dt);
 		void stepRaw(double dt);
 		void collideWalls(const vector<Boid> &boidsOld);
+		
+		// Profiling
+		void printProfilingData();
 	
 	protected:
 		
