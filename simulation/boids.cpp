@@ -114,6 +114,7 @@ int main(int argc, char **argv)
 		cout << "Controls:   Press Space to pause the simulation   " << endl;
 		cout << "            Press S to slow down the simulation   " << endl;
 		cout << "            Press A to accelerate the simulation  " << endl;
+		cout << "            Press M to run the simulation at max speed  " << endl;
 		cout << endl;
 		
 		return 0;
@@ -178,6 +179,7 @@ int main(int argc, char **argv)
 	bool pause = false;
 	bool slowdown = false;
 	bool accelerate = false;
+	bool maxspeed = false;
 	
 	system_clock::time_point lastFrame = system_clock::now();
 	
@@ -210,18 +212,29 @@ int main(int argc, char **argv)
 			{
 				accelerate = !accelerate;
 			}
+			
+			if (event.type == sf::Event::KeyReleased && 
+				event.key.code == sf::Keyboard::M)
+			{
+				maxspeed = !maxspeed;
+				
+				if (maxspeed) window.setFramerateLimit(-1);
+				else window.setFramerateLimit(30);
+			}
 		}
 		
 		if (!pause) 
 		{
 			//////////////////////////// Timing ////////////////////////////
 			
-			if (slowdown)
-				timeConvFactor = timeConvFactorBase/5;
-			else if (accelerate)
-				timeConvFactor = timeConvFactorBase*5;
-			else
-				timeConvFactor = timeConvFactorBase;
+			// maxspeed: techically not max speed but we use a number large 
+			// enough so that the cpu is fully used between each frame
+			
+			if (slowdown)        timeConvFactor = timeConvFactorBase/5;
+			else if (accelerate) timeConvFactor = timeConvFactorBase*5;
+			else if (maxspeed)   timeConvFactor = timeConvFactorBase*100;
+			else timeConvFactor = timeConvFactorBase;
+			
 			
 			////////////////////////// Time Step ///////////////////////////
 			
