@@ -38,6 +38,9 @@ void renderForces(sf::RenderWindow &window, vector<Boid> boids,
 void renderWalls(sf::RenderWindow &window, vector<Wall> walls, 
                  double scaleX, double scaleY);
 
+void renderWallsInView(sf::RenderWindow &window, vector<Boid> boids, 
+                       vector<Wall> walls, double scaleX, double scaleY, int i);
+
 void renderMouse(sf::RenderWindow &window, double mouseX, double mouseY, 
                  double scaleX, double scaleY);
 

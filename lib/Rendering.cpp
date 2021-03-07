@@ -78,8 +78,9 @@ void renderForces(sf::RenderWindow &window, vector<Boid> boids, double scaleX, d
 
 void renderWalls(sf::RenderWindow &window, vector<Wall> walls, double scaleX, double scaleY)
 {
-	sf::RectangleShape line(sf::Vector2f(1, 0.05));
-	line.setOrigin(0,0.025);
+	double width = 0.05;
+	sf::RectangleShape line(sf::Vector2f(1, width));
+	line.setOrigin(0,width/2);
 	line.setFillColor(sf::Color::Black);
 
 	for (int i=0; i<walls.size(); i++)
@@ -95,6 +96,49 @@ void renderWalls(sf::RenderWindow &window, vector<Wall> walls, double scaleX, do
 		line.setPosition(sf::Vector2f(x1*scaleX, y1*scaleY));
 		line.setRotation(angleL);
 		window.draw(line);
+	}
+}
+
+void renderWallsInView(sf::RenderWindow &window, vector<Boid> boids, vector<Wall> walls, double scaleX, double scaleY, int i)
+{
+	double width = 0.05;
+	sf::RectangleShape line(sf::Vector2f(1, width));
+	line.setOrigin(0,width/2);
+	line.setFillColor(sf::Color::Red);
+	
+	vector<Wall> wallsInView = boids[i].findWallsInView(walls, true);
+
+	for (int j=0; j<wallsInView.size(); j++)
+	{
+		double x1 = wallsInView[j].x1;
+		double y1 = wallsInView[j].y1;
+		double x2 = wallsInView[j].x2;
+		double y2 = wallsInView[j].y2;
+		
+		double L = sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1));
+		double angleL = angle(x1,y1,x2,y2);
+		line.setScale(scaleX*L,scaleY);
+		line.setPosition(sf::Vector2f(x1*scaleX, y1*scaleY));
+		line.setRotation(angleL);
+		window.draw(line);
+	}
+	
+	sf::CircleShape circle(width*2);
+	circle.setScale(scaleX,scaleY);
+	circle.setOrigin(width*2,width*2);
+	circle.setFillColor(sf::Color::Red);
+	
+	for (int j=0; j<wallsInView.size(); j++)
+	{
+		double x1 = wallsInView[j].x1;
+		double y1 = wallsInView[j].y1;
+		double x2 = wallsInView[j].x2;
+		double y2 = wallsInView[j].y2;
+		
+		double xw, yw; 
+		wallsInView[j].findClosestPoint(boids[i].x,boids[i].y,xw,yw);
+		circle.setPosition(sf::Vector2f(xw*scaleX, yw*scaleY));
+		window.draw(circle);
 	}
 }
 

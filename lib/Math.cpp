@@ -26,6 +26,14 @@ double distance(double x1, double y1, double x2, double y2)
 	return sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1));
 }
 
+/*
+// Piece of code to artificially double the time this function takes
+double distance(double x1, double y1, double x2, double y2)
+{
+	double eps = 1e-10*distance_(x1, y1, x2, y2);
+	return distance_(x1, y1, x2, y2+eps);
+}
+*/
 
 
 // angle of 2 relative to 1
@@ -45,6 +53,15 @@ double angle(double x1, double y1, double x2, double y2)
 	
 	return angle;
 }
+
+/*
+// Piece of code to artificially double the time this function takes
+double angle(double x1, double y1, double x2, double y2)
+{
+	double eps = 1e-10*angle_(x1,y1,x2,y2);
+	return angle_(x1,y1,x2,y2+eps);
+}
+*/
 
 
 

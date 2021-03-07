@@ -126,6 +126,7 @@ void World::renderDebug(sf::RenderWindow &window, int i, bool doForces)
 	double scaleY = window.getSize().y/sizeY_;
 	
 	renderWalls(window, walls_, scaleX, scaleY);
+	renderWallsInView(window, getBoids(), walls_, scaleX, scaleY, i);
 	renderBoidsHighlight(window, getBoids(), scaleX, scaleY, i);
 	if (doForces) renderForces(window, getBoids(), scaleX, scaleY);
 	
@@ -135,6 +136,7 @@ void World::renderDebug(sf::RenderWindow &window, int i, bool doForces)
 	profData_.calls_render ++; int n=profData_.calls_render;
 	profData_.avg_time_render += (time_us-profData_.avg_time_render)/n;
 }
+
 
 ////////////////////////// Wall - Ray mechanics ////////////////////////////
 
@@ -224,6 +226,15 @@ void intersection(const Ray &ray, const Wall &wall, double &xInt, double &yInt, 
 	}
 }
 
+/*
+// Piece of code to artificially double the time this function takes
+void intersection(const Ray &ray, const Wall &wall, double &xInt, double &yInt, bool &exists)
+{
+	intersection_(ray, wall, xInt, yInt, exists);
+	intersection_(ray, wall, xInt, yInt, exists);
+}
+*/
+
 
 ////////////////////////////// Initialisation //////////////////////////////
 
@@ -258,8 +269,8 @@ void World::addRandomWallOnSquareGrid()
 	int Ny = int (sizeY_/5.0);
 	
 	uniform_real_distribution<double> dist01(0,1);
-	uniform_int_distribution<int> distX(0,Nx);
-	uniform_int_distribution<int> distY(0,Ny);
+	uniform_int_distribution<int> distX(1,Nx-1);
+	uniform_int_distribution<int> distY(1,Ny-1);
 	
 	double dx = sizeX_*1.0/Nx;
 	double dy = sizeY_*1.0/Ny;
@@ -313,19 +324,22 @@ void World::advanceTime(double T, double dt)
 {
 	for (double t=0; t<T; t+=dt)
 	{
+		steady_clock::time_point start  = steady_clock::now();
+		
+		// Copy current state of boids
+		
+		vector<Boid> boidsOld = getBoids();
+		
 		// Compute forces
 		
-		steady_clock::time_point start  = steady_clock::now();
 		steady_clock::time_point start2 = steady_clock::now();
-		
-		vector<Boid> bois_copy = getBoids();
 		
 		#pragma omp parallel for
 		for (int i=0; i<boids_.size(); i++)
 		{
 			boids_[i]->resetForce();
-			boids_[i]->computePhysicalForces(bois_copy, walls_);
-			boids_[i]->computeBehaviouralForces(bois_copy, walls_);
+			boids_[i]->computePhysicalForces(boidsOld, walls_);
+			boids_[i]->computeBehaviouralForces(boidsOld, walls_);
 		}
 		
 		{
@@ -339,7 +353,6 @@ void World::advanceTime(double T, double dt)
 		
 		// Integrate
 		
-		vector<Boid> boidsOld = getBoids();
 		for (int i=0; i<boids_.size(); i++) boids_[i]->step(dt);
 		collideWalls(boidsOld);
 		
@@ -350,6 +363,11 @@ void World::advanceTime(double T, double dt)
 		#pragma omp parallel for
 		for (int i=0; i<boids_.size(); i++)
 		{
+			// Note: update using old boid state to save the time necessary
+			// to make a copy of the boids vector (6 microseconds for 100 boids)
+			// TODO: no we cannot do that otherwise a boid detects himself
+			//       as a neighbour (the current detection is not based on 
+			//       indices but on positions)
 			boids_[i]->updateNeighbours(getBoids(), walls_);
 		}
 		
@@ -458,16 +476,16 @@ void Wall::findClosestPoint(double x, double y, double &xw, double &yw) const
 	}
 	
 	// projection not on the wall and behind (x2,y2)
-	else if (dotab*dotab>dotaa*dotbb) 
+	else if (dotab>dotaa) 
 	{
-		xw = x1;
-		yw = y1;
+		xw = x2;
+		yw = y2;
 	}
 	
 	// projection on the wall
 	else
 	{
-		double lambda = dotab/sqrt(dotbb)/sqrt(dotaa);
+		double lambda = dotab/dotaa;
 		xw = x1 + a[0] * lambda;
 		yw = y1 + a[1] * lambda;
 	}

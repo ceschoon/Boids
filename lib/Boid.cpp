@@ -88,7 +88,7 @@ void Boid::computeBehaviouralForces(const vector<Boid> &boids, const vector<Wall
 	
 	computeCohesionForce(boids, fx_, fy_);
 	computeAlignmentForce(boids, fx_, fy_);
-	computeWallAvoidingForce(boids, walls, fx_, fy_); // TODO: here is where most of the computation time for forces is spent
+	computeWallAvoidingForce(boids, walls, fx_, fy_);
 	
 	// decompose in the frame of the Boid
 	
@@ -167,32 +167,33 @@ void Boid::computeWallAvoidingForce(const vector<Boid> &boids,
 	bool outOfRays = false;
 	Ray ray(x, y, orientation());
 	
+	vector<Wall> wallsInView = walls;
+	//vector<Wall> wallsInView = findWallsInView(walls,true); //TODO: not much better
+	
 	while (foundFreeRay == false && outOfRays == false)
 	{	 
 		foundFreeRay = true;
-		for (int j=0; j<walls.size(); j++)
+		for (int j=0; j<wallsInView.size(); j++)
 		{
 			// check if ray intersect the wall
 			double xInt = 0;
 			double yInt = 0;
 			bool exists = false;
-			intersection(ray, walls[j], xInt, yInt, exists);
+			intersection(ray, wallsInView[j], xInt, yInt, exists);
 			bool obstructed = exists && distance(ray.originX,ray.originY,xInt,yInt)<obstacleRange;
+			if (obstructed) {foundFreeRay = false; break;}
 			
 			// check if neighbour rays also intersect the wall
 			double delta = 15; //default 15
 			Ray rayLeft(ray.originX, ray.originY, ray.angle-delta);
-			intersection(rayLeft, walls[j], xInt, yInt, exists);
+			intersection(rayLeft, wallsInView[j], xInt, yInt, exists);
 			bool obstructedLeft = exists && distance(ray.originX,ray.originY,xInt,yInt)<obstacleRange;
-			Ray rayRight(ray.originX, ray.originY, ray.angle+delta);
-			intersection(rayRight, walls[j], xInt, yInt, exists);
-			bool obstructedRight = exists && distance(ray.originX,ray.originY,xInt,yInt)<obstacleRange;
+			if (obstructedLeft) {foundFreeRay = false; break;}
 			
-			if (obstructed || obstructedLeft || obstructedRight)
-			{
-				foundFreeRay = false;
-				break;
-			}	
+			Ray rayRight(ray.originX, ray.originY, ray.angle+delta);
+			intersection(rayRight, wallsInView[j], xInt, yInt, exists);
+			bool obstructedRight = exists && distance(ray.originX,ray.originY,xInt,yInt)<obstacleRange;
+			if (obstructedRight) {foundFreeRay = false; break;}
 		}
 		
 		if (foundFreeRay == false)
@@ -301,21 +302,21 @@ bool Boid::isNeighbour (int index) const
 }
 
 
-// TODO Loose a factor 2 here because of this function being a member of the
-//      boid class. Otherwise we could simply call it on j>i and update the 
-//      two boids at once.
+// TODO We loose a factor 2 in speed here because of this function being a 
+//      member of the boid class. Otherwise we could simply call it on j>i 
+//      and update boids i and j at once.
 void Boid::updateNeighbours(const vector<Boid> &boids, const vector<Wall> &walls)
 {
-	findWallsInView(walls);
+	vector<Wall> wallsInView = findWallsInView(walls,false); // takes about 5 microseconds for 100 boids
 	vector<int> neighboursNew = {};
 	
 	for (int j=0; j<boids.size(); j++)
 	{
-		// check that the new boid is not the current one
-		if (boids[j].getPosX()==x && boids[j].getPosY()==y) continue;
-		
 		double xj = boids[j].getPosX();
 		double yj = boids[j].getPosY();
+		
+		// check that the new boid is not the current one
+		if (xj==x && yj==y) continue;
 		
 		// distance condition
 		double dij = distance(x,y,xj,yj);
@@ -340,7 +341,7 @@ void Boid::updateNeighbours(const vector<Boid> &boids, const vector<Wall> &walls
 			double xInt,yInt;
 			intersection(ray,wallsInView[k],xInt,yInt,exists);
 			
-			if ( exists && distance(x,y,xInt,yInt) < distance(x,y,xj,yj) )
+			if ( exists && distance(x,y,xInt,yInt) < dij )
 			{
 				viewObstructed = true;
 				break;
@@ -362,43 +363,50 @@ void Boid::updateNeighbours(const vector<Boid> &boids, const vector<Wall> &walls
 //    2.2. Check if this wall extremity is within view angle
 //         If no, continue. If yes, record this wall.
 
-void Boid::findWallsInView(const vector<Wall> &walls)
+vector<Wall> Boid::findWallsInView(const vector<Wall> &walls, bool countBorders)
 {
 	vector<Wall> wallsInViewNew = {};
 	
 	for (int i=0; i<walls.size(); i++)
 	{
 		// Do not count border walls
-		if (walls[i].isABorder) continue;
+		if (walls[i].isABorder && !countBorders) continue;
 		
 		// Check if wall crosses one of the view rays at the largest angle
 		
-		bool exists; double xInt,yInt;
+		bool isInView = false;
+		bool exists; double xInt,yInt; double dInt;
 		
 		Ray ray1(x,y,orientation()-viewAngle);
 		intersection(ray1,walls[i],xInt,yInt,exists);
-		if (exists) wallsInViewNew.push_back(walls[i]);
+		dInt = distance(x,y,xInt,yInt);
+		if (exists) if (dInt < viewRange || dInt < obstacleRange) 
+			isInView = true;
 		
 		Ray ray2(x,y,orientation()+viewAngle);
 		intersection(ray2,walls[i],xInt,yInt,exists);
-		if (exists) wallsInViewNew.push_back(walls[i]);
+		dInt = distance(x,y,xInt,yInt);
+		if (exists) if (dInt < viewRange || dInt < obstacleRange) 
+			isInView = true;
 		
 		// Find point on wall line that is the closest to the boid
 		// Check if it is in range (distance and angle)
 		
-		double xw, yw;
-		walls[i].findClosestPoint(x,y,xw,yw);
+		double xw, yw; walls[i].findClosestPoint(x,y,xw,yw);
 		
 		double dw = distance(x,y,xw,yw);
-		if (dw < viewRange)
+		if (dw < viewRange || dw < obstacleRange)
 		{
 			double anglew = angle(x,y,xw,yw);
 			if (abs(angleDifference(anglew,orientation()))<viewAngle)
-				wallsInViewNew.push_back(walls[i]);
+				isInView = true;
 		}
+		
+		// Add wall if in view
+		if (isInView) wallsInViewNew.push_back(walls[i]);
 	}
 	
-	wallsInView = wallsInViewNew;
+	return wallsInViewNew;
 }
 
 

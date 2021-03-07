@@ -61,6 +61,7 @@ class World
 		int getNumBoids() {return boids_.size();}
 		Boid getBoid(int i=0);
 		vector<Boid> getBoids();
+		vector<Wall> getWalls() {return walls_;}
 		
 		// Rendering
 		void render(sf::RenderWindow &window);
