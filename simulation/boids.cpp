@@ -179,7 +179,7 @@ int main(int argc, char **argv)
 	bool slowdown = false;
 	bool accelerate = false;
 	
-	steady_clock::time_point lastFrame = steady_clock::now();
+	system_clock::time_point lastFrame = system_clock::now();
 	
 	while (window.isOpen())
 	{
@@ -225,15 +225,16 @@ int main(int argc, char **argv)
 			
 			////////////////////////// Time Step ///////////////////////////
 			
-			steady_clock::time_point presentFrame = steady_clock::now();
+			system_clock::time_point presentFrame = system_clock::now();
 			double time_real = duration_cast<duration<double>> 
 			                   (presentFrame - lastFrame).count();
-			lastFrame = presentFrame;
 			
 			double time_world = time_real*timeConvFactor;
 			
 			world.advanceTime(time_world,dt);
 			t += time_world;
+			
+			lastFrame = system_clock::now();
 			
 			//// debug info
 			//Boid boid = world.getBoid(0);
@@ -255,7 +256,7 @@ int main(int argc, char **argv)
 			// do not use all cpu usage when in pause
 			this_thread::sleep_for(milliseconds(100));
 			
-			lastFrame = steady_clock::now();
+			lastFrame = system_clock::now();
 		}
 	}
 	
