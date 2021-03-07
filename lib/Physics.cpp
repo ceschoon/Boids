@@ -315,25 +315,26 @@ void World::advanceTime(double T, double dt)
 {
 	for (double t=0; t<T; t+=dt)
 	{
-		steady_clock::time_point start = steady_clock::now();
-		
 		// Compute forces
+		
+		steady_clock::time_point start  = steady_clock::now();
+		steady_clock::time_point start2 = steady_clock::now();
 		
 		#pragma omp parallel for
 		for (int i=0; i<boids_.size(); i++)
 		{
-			steady_clock::time_point start2 = steady_clock::now();
-			
 			boids_[i]->resetForce();
 			boids_[i]->computePhysicalForces(getBoids(), walls_);
 			boids_[i]->computeBehaviouralForces(getBoids(), walls_);
-			
-			// profiling: timing
+		}
+		
+		{
+			// profiling: timing forces
 			steady_clock::time_point stop2 = steady_clock::now();
 			int time_us = duration_cast<microseconds>(stop2-start2).count();
 			
-			profData_.calls_allforces ++; int n=profData_.calls_allforces;
-			profData_.avg_time_allforces += (time_us-profData_.avg_time_allforces)/n;
+			profData_.calls_allforces +=boids_.size(); int n=profData_.calls_allforces/boids_.size();
+			profData_.avg_time_allforces += (time_us/boids_.size()-profData_.avg_time_allforces)/n;
 		}
 		
 		// Integrate
@@ -344,13 +345,24 @@ void World::advanceTime(double T, double dt)
 		
 		// Update neighbour list
 		
+		start2 = steady_clock::now();
+		
 		#pragma omp parallel for
 		for (int i=0; i<boids_.size(); i++)
 		{
 			boids_[i]->updateNeighbours(getBoids(), walls_);
 		}
 		
-		// profiling: timing
+		{
+			// profiling: timing neighbour updates
+			steady_clock::time_point stop2 = steady_clock::now();
+			int time_us = duration_cast<microseconds>(stop2-start2).count();
+			
+			profData_.calls_updateNeighbours += boids_.size(); int n=profData_.calls_updateNeighbours/boids_.size();
+			profData_.avg_time_updateNeighbours += (time_us/boids_.size()-profData_.avg_time_updateNeighbours)/n;
+		}
+		
+		// profiling: timing step
 		steady_clock::time_point stop = steady_clock::now();
 		int time_us = duration_cast<microseconds>(stop-start).count();
 		

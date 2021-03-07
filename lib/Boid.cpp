@@ -306,8 +306,6 @@ bool Boid::isNeighbour (int index) const
 //      two boids at once.
 void Boid::updateNeighbours(const vector<Boid> &boids, const vector<Wall> &walls)
 {
-	steady_clock::time_point start = steady_clock::now();
-	
 	findWallsInView(walls);
 	vector<int> neighboursNew = {};
 	
@@ -354,13 +352,6 @@ void Boid::updateNeighbours(const vector<Boid> &boids, const vector<Wall> &walls
 	}
 	
 	neighbours = neighboursNew;
-	
-	// profiling: timing
-	steady_clock::time_point stop = steady_clock::now();
-	int time_us = duration_cast<microseconds>(stop-start).count();
-	
-	profData_.calls_updateNeighbours ++; int n=profData_.calls_updateNeighbours;
-	profData_.avg_time_updateNeighbours += (time_us-profData_.avg_time_updateNeighbours)/n;
 }
 
 
