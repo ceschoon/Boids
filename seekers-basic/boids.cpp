@@ -308,6 +308,9 @@ void run_generation(sf::RenderWindow &window, WindowParams &pwindow,
 				event.key.code == sf::Keyboard::M)
 			{
 				pwindow.maxspeed = !pwindow.maxspeed;
+				
+				if (pwindow.maxspeed) window.setFramerateLimit(-1);
+				else window.setFramerateLimit(30);
 			}
 		}
 		
