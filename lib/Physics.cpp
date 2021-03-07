@@ -43,10 +43,10 @@ World::World(double sizeX, double sizeY, int seed)
 	
 	// Put walls on the box sides
 	
-	Wall wallBorder0(0,0,0,sizeY_);
-	Wall wallBorder1(0,sizeY_,sizeX_,sizeY_);
-	Wall wallBorder2(sizeX_,sizeY_,sizeX_,0);
-	Wall wallBorder3(sizeX_,0,0,0);
+	Wall wallBorder0(0,0,0,sizeY_,true);
+	Wall wallBorder1(0,sizeY_,sizeX_,sizeY_,true);
+	Wall wallBorder2(sizeX_,sizeY_,sizeX_,0,true);
+	Wall wallBorder3(sizeX_,0,0,0,true);
 	
 	walls_.push_back(wallBorder0);
 	walls_.push_back(wallBorder1);
@@ -82,21 +82,18 @@ void World::printProfilingData()
 	file << "calls for forces (all)        " << setw(8) << profData_.calls_allforces << endl;
 	file << "calls for updateNeighbours    " << setw(8) << profData_.calls_updateNeighbours << endl;
 	file << "calls for collideWalls        " << setw(8) << profData_.calls_collideWalls << endl;
-	file << "calls for intersection        " << setw(8) << profData_.calls_intersection << endl;
 	file << endl;
 	file << "avg time for render              " << setw(12) << profData_.avg_time_render << " microseconds" << endl;
 	file << "avg time for step                " << setw(12) << profData_.avg_time_step << " microseconds" << endl;
 	file << "avg time for forces (all)        " << setw(12) << profData_.avg_time_allforces << " microseconds" << endl;
 	file << "avg time for updateNeighbours    " << setw(12) << profData_.avg_time_updateNeighbours << " microseconds" << endl;
 	file << "avg time for collideWalls        " << setw(12) << profData_.avg_time_collideWalls << " microseconds" << endl;
-	file << "avg time for intersection        " << setw(12) << profData_.avg_time_intersection << " microseconds" << endl;
 	file << endl;
 	file << "tot time for render              " << setw(12) << 1e-6*profData_.avg_time_render*profData_.calls_render << " seconds" << endl;
 	file << "tot time for step                " << setw(12) << 1e-6*profData_.avg_time_step*profData_.calls_step << " seconds" << endl;
 	file << "tot time for forces (all)        " << setw(12) << 1e-6*profData_.avg_time_allforces*profData_.calls_allforces << " seconds" << endl;
 	file << "tot time for updateNeighbours    " << setw(12) << 1e-6*profData_.avg_time_updateNeighbours*profData_.calls_updateNeighbours << " seconds" << endl;
 	file << "tot time for collideWalls        " << setw(12) << 1e-6*profData_.avg_time_collideWalls*profData_.calls_collideWalls << " seconds" << endl;
-	file << "tot time for intersection        " << setw(12) << 1e-6*profData_.avg_time_intersection*profData_.calls_intersection << " seconds" << endl;
 	file << endl;
 }
 
@@ -144,10 +141,8 @@ void World::renderDebug(sf::RenderWindow &window, int i, bool doForces)
 ////////////////////////// Wall - Ray mechanics ////////////////////////////
 
 
-void intersection(Ray ray, Wall wall, double &xInt, double &yInt, bool &exists)
+void intersection(const Ray &ray, const Wall &wall, double &xInt, double &yInt, bool &exists)
 {
-	steady_clock::time_point start = steady_clock::now();
-	
 	exists = true;
 	
 	// this function is called many times, optimise it by
@@ -229,13 +224,6 @@ void intersection(Ray ray, Wall wall, double &xInt, double &yInt, bool &exists)
 			if (sinAngle<0 && yInt>y3) exists = false;
 		}
 	}
-	
-	// profiling: timing
-	steady_clock::time_point stop = steady_clock::now();
-	int time_us = duration_cast<microseconds>(stop-start).count();
-	
-	profData_.calls_intersection ++; int n=profData_.calls_intersection;
-	profData_.avg_time_intersection += (time_us-profData_.avg_time_intersection)/n;
 }
 
 
@@ -434,6 +422,49 @@ void World::collideWalls(const vector<Boid> &boidsOld)
 	profData_.calls_collideWalls ++; int n=profData_.calls_collideWalls;
 	profData_.avg_time_collideWalls += (time_us-profData_.avg_time_collideWalls)/n;
 }
+
+
+
+
+//////////////////////////////// Wall methods //////////////////////////////
+
+
+void Wall::findClosestPoint(double x, double y, double &xw, double &yw) const
+{
+	double a[2] = {x2-x1,y2-y1};
+	double b[2] = {x -x1,y -y1};
+	
+	double dotab = a[0]*b[0]+a[1]*b[1];
+	double dotaa = a[0]*a[0]+a[1]*a[1];
+	double dotbb = b[0]*b[0]+b[1]*b[1];
+	
+	// projection not on the wall and behind (x1,y1)
+	if (dotab<0) 
+	{
+		xw = x1;
+		yw = y1;
+	}
+	
+	// projection not on the wall and behind (x2,y2)
+	else if (dotab*dotab>dotaa*dotbb) 
+	{
+		xw = x1;
+		yw = y1;
+	}
+	
+	// projection on the wall
+	else
+	{
+		double lambda = dotab/sqrt(dotbb)/sqrt(dotaa);
+		xw = x1 + a[0] * lambda;
+		yw = y1 + a[1] * lambda;
+	}
+}
+
+
+
+
+
 
 
 

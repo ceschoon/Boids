@@ -34,14 +34,12 @@ struct ProfilingData
 	int calls_allforces;
 	int calls_updateNeighbours;
 	int calls_collideWalls;
-	int calls_intersection;
 	
 	double avg_time_render;
 	double avg_time_step;
 	double avg_time_allforces;
 	double avg_time_updateNeighbours;
 	double avg_time_collideWalls;
-	double avg_time_intersection;
 };
 
 
@@ -102,18 +100,24 @@ class Wall
 {
 	public:
 		
-		Wall(double x1_, double y1_, double x2_, double y2_)
+		Wall(double x1_, double y1_, double x2_, double y2_, bool isABorder_=false)
 		{
 			x1 = x1_;
 			y1 = y1_;
 			x2 = x2_;
 			y2 = y2_;
+			
+			isABorder = isABorder_;
 		}
+		
+		void findClosestPoint(double x, double y, double &xw, double &yw) const;
 		
 		double x1;
 		double y1;
 		double x2;
 		double y2;
+		
+		bool isABorder;
 };
 
 
@@ -134,7 +138,7 @@ class Ray
 };
 
 
-void intersection(Ray ray, Wall wall, double &xInt, double &yInt, bool &exists);
+void intersection(const Ray &ray, const Wall &wall, double &xInt, double &yInt, bool &exists);
 
 
 ////////////////////////////////////////////////////////////////////////////

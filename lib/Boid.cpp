@@ -301,16 +301,19 @@ bool Boid::isNeighbour (int index) const
 }
 
 
-
-void Boid::updateNeighbours(const vector<Boid> &boids, const vector<Wall> walls)
+// TODO Loose a factor 2 here because of this function being a member of the
+//      boid class. Otherwise we could simply call it on j>i and update the 
+//      two boids at once.
+void Boid::updateNeighbours(const vector<Boid> &boids, const vector<Wall> &walls)
 {
 	steady_clock::time_point start = steady_clock::now();
 	
+	findWallsInView(walls);
 	vector<int> neighboursNew = {};
 	
 	for (int j=0; j<boids.size(); j++)
 	{
-		// check that boid is not current one
+		// check that the new boid is not the current one
 		if (boids[j].getPosX()==x && boids[j].getPosY()==y) continue;
 		
 		double xj = boids[j].getPosX();
@@ -318,19 +321,26 @@ void Boid::updateNeighbours(const vector<Boid> &boids, const vector<Wall> walls)
 		
 		// distance condition
 		double dij = distance(x,y,xj,yj);
+		if (dij > viewRange) continue;
 		
 		// visibility condition (angle)
 		double angleij = angle(x,y,xj,yj);
+		if (abs(angleDifference(angleij,orientation()))>viewAngle) continue;
+		
+		//?TODO: Optimise visibility checks by precomputing visibility 
+		//       between chunks on the map. Keep track of the chunk the 
+		//       boids are in. This chunk method can also be used to 
+		//       optimise the distance and angle checks.
 		
 		// visibility condition (no wall)
 		bool viewObstructed = false;
 		Ray ray(x,y,angleij);
 		
-		for (int k=0; k<walls.size(); k++)
+		for (int k=0; k<wallsInView.size(); k++)
 		{
 			bool exists;
 			double xInt,yInt;
-			intersection(ray,walls[k],xInt,yInt,exists);
+			intersection(ray,wallsInView[k],xInt,yInt,exists);
 			
 			if ( exists && distance(x,y,xInt,yInt) < distance(x,y,xj,yj) )
 			{
@@ -339,13 +349,8 @@ void Boid::updateNeighbours(const vector<Boid> &boids, const vector<Wall> walls)
 			}
 		}
 		
-		// count as neightbour if all conditions met
-		if (dij < viewRange &&
-			abs(angleDifference(angleij,orientation()))<viewAngle &&
-			!viewObstructed)
-		{
-			neighboursNew.push_back(j);
-		}
+		// count as neightbour if all conditions are satisfied
+		if (!viewObstructed) neighboursNew.push_back(j);
 	}
 	
 	neighbours = neighboursNew;
@@ -356,6 +361,53 @@ void Boid::updateNeighbours(const vector<Boid> &boids, const vector<Wall> walls)
 	
 	profData_.calls_updateNeighbours ++; int n=profData_.calls_updateNeighbours;
 	profData_.avg_time_updateNeighbours += (time_us-profData_.avg_time_updateNeighbours)/n;
+}
+
+
+// 1. Check if wall crosses one of the view rays at the largest angle.
+//    If no, continue. If yes, record this wall.
+// 2. Check if point on wall line that is the closest to the boid is in range
+//    If no, continue. If yes, 
+//    2.2. Check if this wall extremity is within view angle
+//         If no, continue. If yes, record this wall.
+
+void Boid::findWallsInView(const vector<Wall> &walls)
+{
+	vector<Wall> wallsInViewNew = {};
+	
+	for (int i=0; i<walls.size(); i++)
+	{
+		// Do not count border walls
+		if (walls[i].isABorder) continue;
+		
+		// Check if wall crosses one of the view rays at the largest angle
+		
+		bool exists; double xInt,yInt;
+		
+		Ray ray1(x,y,orientation()-viewAngle);
+		intersection(ray1,walls[i],xInt,yInt,exists);
+		if (exists) wallsInViewNew.push_back(walls[i]);
+		
+		Ray ray2(x,y,orientation()+viewAngle);
+		intersection(ray2,walls[i],xInt,yInt,exists);
+		if (exists) wallsInViewNew.push_back(walls[i]);
+		
+		// Find point on wall line that is the closest to the boid
+		// Check if it is in range (distance and angle)
+		
+		double xw, yw;
+		walls[i].findClosestPoint(x,y,xw,yw);
+		
+		double dw = distance(x,y,xw,yw);
+		if (dw < viewRange)
+		{
+			double anglew = angle(x,y,xw,yw);
+			if (abs(angleDifference(anglew,orientation()))<viewAngle)
+				wallsInViewNew.push_back(walls[i]);
+		}
+	}
+	
+	wallsInView = wallsInViewNew;
 }
 
 
