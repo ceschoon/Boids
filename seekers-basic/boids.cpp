@@ -272,7 +272,7 @@ void run_generation(sf::RenderWindow &window, WindowParams &pwindow,
 	double timeConvFactorBase = 1;
 	double timeConvFactor = timeConvFactorBase;
 	
-	steady_clock::time_point lastFrame = steady_clock::now();
+	system_clock::time_point lastFrame = system_clock::now();
 	
 	while (window.isOpen() && t<simTime)
 	{
@@ -325,10 +325,9 @@ void run_generation(sf::RenderWindow &window, WindowParams &pwindow,
 			
 			////////////////////////// Time Step ///////////////////////////
 			
-			steady_clock::time_point presentFrame = steady_clock::now();
+			system_clock::time_point presentFrame = system_clock::now();
 			double time_real = duration_cast<duration<double>> 
 			                   (presentFrame - lastFrame).count();
-			lastFrame = presentFrame;
 			
 			double time_world = time_real*timeConvFactor;
 			
@@ -379,6 +378,9 @@ void run_generation(sf::RenderWindow &window, WindowParams &pwindow,
 				for (int i=0; i<boids.size(); i++) boids[i].updateScore(t_step);
 			}
 			
+			lastFrame = system_clock::now();
+			world.printProfilingData();
+			
 			/////////////////////////// Rendering //////////////////////////
 			
 			double scaleX = window.getSize().x/pworld.sizeX;
@@ -391,14 +393,13 @@ void run_generation(sf::RenderWindow &window, WindowParams &pwindow,
 			renderBoidAndTarget(window, boids[0], scaleX, scaleY);
 			renderGenerationInfo(window, numGen);
 			window.display();
-			
 		}
 		else
 		{
 			// do not use all cpu usage when in pause
 			this_thread::sleep_for(milliseconds(100));
 			
-			lastFrame = steady_clock::now();
+			lastFrame = system_clock::now();
 		}
 	}
 	
