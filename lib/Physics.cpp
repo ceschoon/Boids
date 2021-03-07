@@ -111,7 +111,6 @@ void World::render(sf::RenderWindow &window)
 	renderBoidsAsTriangles(window, getBoids(), scaleX, scaleY);
 	
 	steady_clock::time_point stop = steady_clock::now();
-	//duration<double> time_span = duration_cast<duration<double>>(stop-start);
 	int time_us = duration_cast<microseconds>(stop-start).count();
 	
 	profData_.calls_render ++; int n=profData_.calls_render;
@@ -131,7 +130,6 @@ void World::renderDebug(sf::RenderWindow &window, int i, bool doForces)
 	if (doForces) renderForces(window, getBoids(), scaleX, scaleY);
 	
 	steady_clock::time_point stop = steady_clock::now();
-	//duration<double> time_span = duration_cast<duration<double>>(stop-start);
 	int time_us = duration_cast<microseconds>(stop-start).count();
 	
 	profData_.calls_render ++; int n=profData_.calls_render;
@@ -320,12 +318,14 @@ void World::advanceTime(double T, double dt)
 		steady_clock::time_point start  = steady_clock::now();
 		steady_clock::time_point start2 = steady_clock::now();
 		
+		vector<Boid> bois_copy = getBoids();
+		
 		#pragma omp parallel for
 		for (int i=0; i<boids_.size(); i++)
 		{
 			boids_[i]->resetForce();
-			boids_[i]->computePhysicalForces(getBoids(), walls_);
-			boids_[i]->computeBehaviouralForces(getBoids(), walls_);
+			boids_[i]->computePhysicalForces(bois_copy, walls_);
+			boids_[i]->computeBehaviouralForces(bois_copy, walls_);
 		}
 		
 		{

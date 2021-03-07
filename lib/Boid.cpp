@@ -88,7 +88,7 @@ void Boid::computeBehaviouralForces(const vector<Boid> &boids, const vector<Wall
 	
 	computeCohesionForce(boids, fx_, fy_);
 	computeAlignmentForce(boids, fx_, fy_);
-	computeWallAvoidingForce(boids, walls, fx_, fy_);
+	computeWallAvoidingForce(boids, walls, fx_, fy_); // TODO: here is where most of the computation time for forces is spent
 	
 	// decompose in the frame of the Boid
 	
