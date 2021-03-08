@@ -68,6 +68,7 @@ class Boid
 		double vx,vy;
 		double fx,fy;            // mass=1 (force=acceleration)
 		vector<int> neighbours;
+		vector<int> neighbours2;
 		
 		vector<Wall> wallsInView;
 		

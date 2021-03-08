@@ -9,8 +9,6 @@
 ////////////////////////////////////////////////////////////////////////////
 
 
-// TODO: separation force is currently computed using neighbours in view,
-//       instead on neighbours in range only
 
 
 #include <iostream>
@@ -246,13 +244,27 @@ void Boid::computeDragForce(const vector<Boid> &boids, double &fx_, double &fy_)
 }
 
 
-
 void Boid::computeSeparationForce(const vector<Boid> &boids, double &fx_, double &fy_)
 {
+	// neighbours in range and view
 	for (int j=0; j<neighbours.size(); j++)
 	{
 		double x2 = boids[neighbours[j]].getPosX();
 		double y2 = boids[neighbours[j]].getPosY();
+		double r = distance(x,y,x2,y2);
+		double angle12 = angle(x2,y2,x,y);
+		
+		// no test for r<range as it is done in neighbour list construction
+		double F = a/(r*r);
+		fx_ += F*cos(angle12*PI/180);
+		fy_ += F*sin(angle12*PI/180);
+	}
+	
+	// neighbours in range but not in view
+	for (int j=0; j<neighbours2.size(); j++)
+	{
+		double x2 = boids[neighbours2[j]].getPosX();
+		double y2 = boids[neighbours2[j]].getPosY();
 		double r = distance(x,y,x2,y2);
 		double angle12 = angle(x2,y2,x,y);
 		
@@ -312,6 +324,10 @@ bool Boid::isNeighbour (int index) const
 void Boid::updateNeighbours(const vector<Boid> &boids, const vector<Wall> &walls, int i)
 {
 	vector<int> neighboursNew = {};
+	vector<int> neighbours2New = {};
+	
+	neighboursNew.reserve(boids.size());
+	neighbours2New.reserve(boids.size());
 	
 	for (int j=0; j<boids.size(); j++)
 	{
@@ -326,8 +342,9 @@ void Boid::updateNeighbours(const vector<Boid> &boids, const vector<Wall> &walls
 		if (dij > viewRange) continue;
 		
 		// visibility condition (angle)
+		bool outOfViewAngle = false;
 		double angleij = angle(x,y,xj,yj);
-		if (abs(angleDifference(angleij,orientation()))>viewAngle) continue;
+		if (abs(angleDifference(angleij,orientation()))>viewAngle) outOfViewAngle = true;
 		
 		//?TODO: Optimise visibility checks by precomputing visibility 
 		//       between chunks on the map. Keep track of the chunk the 
@@ -352,10 +369,12 @@ void Boid::updateNeighbours(const vector<Boid> &boids, const vector<Wall> &walls
 		}
 		
 		// count as neightbour if all conditions are satisfied
-		if (!viewObstructed) neighboursNew.push_back(j);
+		if (!outOfViewAngle && !viewObstructed) neighboursNew.push_back(j);
+		if ( outOfViewAngle && !viewObstructed) neighbours2New.push_back(j);
 	}
 	
 	neighbours = neighboursNew;
+	neighbours2 = neighbours2New;
 }
 
 
