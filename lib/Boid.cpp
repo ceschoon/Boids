@@ -9,6 +9,9 @@
 ////////////////////////////////////////////////////////////////////////////
 
 
+// TODO: separation force is currently computed using neighbours in view,
+//       instead on neighbours in range only
+
 
 #include <iostream>
 #include <chrono>
@@ -167,31 +170,32 @@ void Boid::computeWallAvoidingForce(const vector<Boid> &boids,
 	bool outOfRays = false;
 	Ray ray(x, y, orientation());
 	
-	vector<Wall> wallsInView = walls;
-	//vector<Wall> wallsInView = findWallsInView(walls,true); //TODO: not much better
+	vector<Wall> wallsToCheck = wallsInView;
+	for (int i=0; i<walls.size(); i++)
+		if (walls[i].isABorder) wallsToCheck.push_back(walls[i]);
 	
 	while (foundFreeRay == false && outOfRays == false)
 	{	 
 		foundFreeRay = true;
-		for (int j=0; j<wallsInView.size(); j++)
+		for (int j=0; j<wallsToCheck.size(); j++)
 		{
 			// check if ray intersect the wall
 			double xInt = 0;
 			double yInt = 0;
 			bool exists = false;
-			intersection(ray, wallsInView[j], xInt, yInt, exists);
+			intersection(ray, wallsToCheck[j], xInt, yInt, exists);
 			bool obstructed = exists && distance(ray.originX,ray.originY,xInt,yInt)<obstacleRange;
 			if (obstructed) {foundFreeRay = false; break;}
 			
 			// check if neighbour rays also intersect the wall
 			double delta = 15; //default 15
 			Ray rayLeft(ray.originX, ray.originY, ray.angle-delta);
-			intersection(rayLeft, wallsInView[j], xInt, yInt, exists);
+			intersection(rayLeft, wallsToCheck[j], xInt, yInt, exists);
 			bool obstructedLeft = exists && distance(ray.originX,ray.originY,xInt,yInt)<obstacleRange;
 			if (obstructedLeft) {foundFreeRay = false; break;}
 			
 			Ray rayRight(ray.originX, ray.originY, ray.angle+delta);
-			intersection(rayRight, wallsInView[j], xInt, yInt, exists);
+			intersection(rayRight, wallsToCheck[j], xInt, yInt, exists);
 			bool obstructedRight = exists && distance(ray.originX,ray.originY,xInt,yInt)<obstacleRange;
 			if (obstructedRight) {foundFreeRay = false; break;}
 		}
@@ -305,9 +309,8 @@ bool Boid::isNeighbour (int index) const
 // TODO We loose a factor 2 in speed here because of this function being a 
 //      member of the boid class. Otherwise we could simply call it on j>i 
 //      and update boids i and j at once.
-void Boid::updateNeighbours(const vector<Boid> &boids, const vector<Wall> &walls)
+void Boid::updateNeighbours(const vector<Boid> &boids, const vector<Wall> &walls, int i)
 {
-	vector<Wall> wallsInView = findWallsInView(walls,false); // takes about 5 microseconds for 100 boids
 	vector<int> neighboursNew = {};
 	
 	for (int j=0; j<boids.size(); j++)
@@ -316,7 +319,7 @@ void Boid::updateNeighbours(const vector<Boid> &boids, const vector<Wall> &walls
 		double yj = boids[j].getPosY();
 		
 		// check that the new boid is not the current one
-		if (xj==x && yj==y) continue;
+		if (i==j) continue;
 		
 		// distance condition
 		double dij = distance(x,y,xj,yj);
@@ -363,7 +366,7 @@ void Boid::updateNeighbours(const vector<Boid> &boids, const vector<Wall> &walls
 //    2.2. Check if this wall extremity is within view angle
 //         If no, continue. If yes, record this wall.
 
-vector<Wall> Boid::findWallsInView(const vector<Wall> &walls, bool countBorders)
+void Boid::findWallsInView(const vector<Wall> &walls, bool countBorders)
 {
 	vector<Wall> wallsInViewNew = {};
 	
@@ -406,7 +409,7 @@ vector<Wall> Boid::findWallsInView(const vector<Wall> &walls, bool countBorders)
 		if (isInView) wallsInViewNew.push_back(walls[i]);
 	}
 	
-	return wallsInViewNew;
+	wallsInView = wallsInViewNew;
 }
 
 

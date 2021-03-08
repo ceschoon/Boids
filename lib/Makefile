@@ -33,4 +33,5 @@ Rendering.o :
 
 clean :
 	rm *.a
+	rm *.o
 

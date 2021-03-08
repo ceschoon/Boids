@@ -58,8 +58,8 @@ class Boid
 		// Neighbour detection
 		
 		bool isNeighbour (int index) const;
-		void updateNeighbours(const vector<Boid> &boids, const vector<Wall> &walls);
-		vector<Wall> findWallsInView(const vector<Wall> &walls, bool countBorders);
+		void updateNeighbours(const vector<Boid> &boids, const vector<Wall> &walls, int i);
+		void findWallsInView(const vector<Wall> &walls, bool countBorders=false);
 		
 		// state variables
 		// (difficult to encapsulate, cleaner as public)
@@ -68,6 +68,8 @@ class Boid
 		double vx,vy;
 		double fx,fy;            // mass=1 (force=acceleration)
 		vector<int> neighbours;
+		
+		vector<Wall> wallsInView;
 		
 	protected:
 	

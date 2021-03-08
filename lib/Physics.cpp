@@ -70,12 +70,15 @@ vector<Boid> World::getBoids()
 
 /////////////////////////////// Profiling //////////////////////////////////
 
-void World::printProfilingData()
+void World::printProfilingData(int argc, char **argv)
 {
 	ofstream file("profiling.out");
 	file << fixed << setprecision(3);
 	
 	file << "================= Profiling Data ================" << endl;
+	file << "From invoking:" << endl;
+	for (int i=0; i<argc; i++) file << argv[i] << " "; file << endl;
+	file << "=================================================" << endl;
 	file << endl;
 	file << "calls for render              " << setw(8) << profData_.calls_render << endl;
 	file << "calls for step                " << setw(8) << profData_.calls_step << endl;
@@ -269,8 +272,8 @@ void World::addRandomWallOnSquareGrid()
 	int Ny = int (sizeY_/5.0);
 	
 	uniform_real_distribution<double> dist01(0,1);
-	uniform_int_distribution<int> distX(1,Nx-1);
-	uniform_int_distribution<int> distY(1,Ny-1);
+	uniform_int_distribution<int> distX(0,Nx);
+	uniform_int_distribution<int> distY(0,Ny);
 	
 	double dx = sizeX_*1.0/Nx;
 	double dy = sizeY_*1.0/Ny;
@@ -311,7 +314,7 @@ void World::placeBoids(vector<Boid*> boids)
 		boids_[i]->vx = vInit*(-0.5+dist01(gen_)); // to avoid problems when superposed
 		boids_[i]->vy = vInit*(-0.5+dist01(gen_)); // and to initiate randommly-orientated movement
 		
-		boids_[i]->updateNeighbours(getBoids(), walls_);
+		boids_[i]->updateNeighbours(getBoids(), walls_, i);
 	}
 }
 
@@ -324,22 +327,19 @@ void World::advanceTime(double T, double dt)
 {
 	for (double t=0; t<T; t+=dt)
 	{
-		steady_clock::time_point start  = steady_clock::now();
-		
-		// Copy current state of boids
-		
-		vector<Boid> boidsOld = getBoids();
-		
 		// Compute forces
 		
+		steady_clock::time_point start  = steady_clock::now();
 		steady_clock::time_point start2 = steady_clock::now();
+		
+		vector<Boid> boidsCopy = getBoids();
 		
 		#pragma omp parallel for
 		for (int i=0; i<boids_.size(); i++)
 		{
 			boids_[i]->resetForce();
-			boids_[i]->computePhysicalForces(boidsOld, walls_);
-			boids_[i]->computeBehaviouralForces(boidsOld, walls_);
+			boids_[i]->computePhysicalForces(boidsCopy, walls_);
+			boids_[i]->computeBehaviouralForces(boidsCopy, walls_);
 		}
 		
 		{
@@ -354,21 +354,19 @@ void World::advanceTime(double T, double dt)
 		// Integrate
 		
 		for (int i=0; i<boids_.size(); i++) boids_[i]->step(dt);
-		collideWalls(boidsOld);
+		collideWalls(boidsCopy); // here the copy is the old state
 		
 		// Update neighbour list
 		
 		start2 = steady_clock::now();
 		
+		boidsCopy = getBoids();
+		
 		#pragma omp parallel for
 		for (int i=0; i<boids_.size(); i++)
 		{
-			// Note: update using old boid state to save the time necessary
-			// to make a copy of the boids vector (6 microseconds for 100 boids)
-			// TODO: no we cannot do that otherwise a boid detects himself
-			//       as a neighbour (the current detection is not based on 
-			//       indices but on positions)
-			boids_[i]->updateNeighbours(getBoids(), walls_);
+			boids_[i]->findWallsInView(walls_);
+			boids_[i]->updateNeighbours(boidsCopy, walls_, i);
 		}
 		
 		{

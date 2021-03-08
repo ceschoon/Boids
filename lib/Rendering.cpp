@@ -106,7 +106,7 @@ void renderWallsInView(sf::RenderWindow &window, vector<Boid> boids, vector<Wall
 	line.setOrigin(0,width/2);
 	line.setFillColor(sf::Color::Red);
 	
-	vector<Wall> wallsInView = boids[i].findWallsInView(walls, true);
+	vector<Wall> wallsInView = boids[i].wallsInView;
 
 	for (int j=0; j<wallsInView.size(); j++)
 	{

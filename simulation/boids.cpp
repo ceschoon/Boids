@@ -110,6 +110,7 @@ int main(int argc, char **argv)
 		cout << "          boxSizeY        double           size of the box              " << endl;
 		cout << "          windowSizeX     int              size of the window           " << endl;
 		cout << "          windowSizeY     int              size of the window           " << endl;
+		cout << "          simTime         double           simulation time for one gen  " << endl;
 		cout << endl;
 		cout << "Controls:   Press Space to pause the simulation   " << endl;
 		cout << "            Press S to slow down the simulation   " << endl;
@@ -171,6 +172,8 @@ int main(int argc, char **argv)
 	
 	////////////////////////////// Main Loop ///////////////////////////////
 	
+	double simTime = -1; readOption(argc, argv, "simTime", simTime);
+	
 	double t = 0;
 	double dt = 0.01;
 	double timeConvFactorBase = 1;
@@ -183,7 +186,7 @@ int main(int argc, char **argv)
 	
 	system_clock::time_point lastFrame = system_clock::now();
 	
-	while (window.isOpen())
+	while (window.isOpen() && (t<simTime || simTime<0))
 	{
 		///////////////////////// Event Handling ///////////////////////////
 		
@@ -253,7 +256,7 @@ int main(int argc, char **argv)
 			//Boid boid = world.getBoid(0);
 			//info(boid);
 			
-			world.printProfilingData();
+			world.printProfilingData(argc, argv);
 			
 			/////////////////////////// Rendering //////////////////////////
 			

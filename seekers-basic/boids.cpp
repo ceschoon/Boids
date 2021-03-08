@@ -382,7 +382,6 @@ void run_generation(sf::RenderWindow &window, WindowParams &pwindow,
 			}
 			
 			lastFrame = system_clock::now();
-			world.printProfilingData();
 			
 			/////////////////////////// Rendering //////////////////////////
 			

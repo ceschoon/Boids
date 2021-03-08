@@ -79,7 +79,7 @@ class World
 		void collideWalls(const vector<Boid> &boidsOld);
 		
 		// Profiling
-		void printProfilingData();
+		void printProfilingData(int argc, char **argv);
 	
 	protected:
 		
