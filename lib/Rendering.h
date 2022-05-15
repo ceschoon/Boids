@@ -23,22 +23,22 @@ class Wall;
 class Ray;
 
 
-void renderBoidsAsTriangles(sf::RenderWindow &window, vector<Boid> boids,
+void renderBoidsAsTriangles(sf::RenderWindow &window, vector<Boid*> boids,
                             double scaleX, double scaleY);
 
-void renderBoidsHighlight(sf::RenderWindow &window, vector<Boid> boids, 
+void renderBoidsHighlight(sf::RenderWindow &window, vector<Boid*> boids, 
                           double scaleX, double scaleY, int indexToHighlight);
 
-void renderBoidsAsPoints(sf::RenderWindow &window, vector<Boid> boids, 
+void renderBoidsAsPoints(sf::RenderWindow &window, vector<Boid*> boids, 
                          double scaleX, double scaleY, double radius=-1); // -1 means use the boid radius
 
-void renderForces(sf::RenderWindow &window, vector<Boid> boids, 
+void renderForces(sf::RenderWindow &window, vector<Boid*> boids, 
                   double scaleX, double scaleY);
 
 void renderWalls(sf::RenderWindow &window, vector<Wall> walls, 
                  double scaleX, double scaleY);
 
-void renderWallsInView(sf::RenderWindow &window, vector<Boid> boids, 
+void renderWallsInView(sf::RenderWindow &window, vector<Boid*> boids, 
                        vector<Wall> walls, double scaleX, double scaleY, int i);
 
 void renderMouse(sf::RenderWindow &window, double mouseX, double mouseY, 

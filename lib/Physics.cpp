@@ -112,8 +112,8 @@ void World::render(sf::RenderWindow &window)
 	double scaleY = window.getSize().y/sizeY_;
 	
 	renderWalls(window, walls_, scaleX, scaleY);
-	renderBoidsAsPoints(window, getBoids(), scaleX, scaleY, -1);
-	renderBoidsAsTriangles(window, getBoids(), scaleX, scaleY);
+	renderBoidsAsPoints(window, boids_, scaleX, scaleY, -1);
+	renderBoidsAsTriangles(window, boids_, scaleX, scaleY);
 	
 	steady_clock::time_point stop = steady_clock::now();
 	int time_us = duration_cast<microseconds>(stop-start).count();
@@ -131,9 +131,9 @@ void World::renderDebug(sf::RenderWindow &window, int i, bool doForces)
 	double scaleY = window.getSize().y/sizeY_;
 	
 	renderWalls(window, walls_, scaleX, scaleY);
-	renderWallsInView(window, getBoids(), walls_, scaleX, scaleY, i);
-	renderBoidsHighlight(window, getBoids(), scaleX, scaleY, i);
-	if (doForces) renderForces(window, getBoids(), scaleX, scaleY);
+	renderWallsInView(window, boids_, walls_, scaleX, scaleY, i);
+	renderBoidsHighlight(window, boids_, scaleX, scaleY, i);
+	if (doForces) renderForces(window, boids_, scaleX, scaleY);
 	
 	steady_clock::time_point stop = steady_clock::now();
 	int time_us = duration_cast<microseconds>(stop-start).count();

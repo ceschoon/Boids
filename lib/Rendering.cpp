@@ -7,7 +7,7 @@
 using namespace std;
 
 
-void renderBoidsAsTriangles(sf::RenderWindow &window, vector<Boid> boids, double scaleX, double scaleY)
+void renderBoidsAsTriangles(sf::RenderWindow &window, vector<Boid*> boids, double scaleX, double scaleY)
 {
 	sf::CircleShape triangle(1,3);
 	triangle.setScale(0.5*scaleX*0.3,1*scaleY*0.3);
@@ -16,13 +16,13 @@ void renderBoidsAsTriangles(sf::RenderWindow &window, vector<Boid> boids, double
 	for (int i=0; i<boids.size(); i++)
 	{
 		triangle.setFillColor(sf::Color::Blue);
-		triangle.setPosition(sf::Vector2f(boids[i].x*scaleX,boids[i].y*scaleY));
-		triangle.setRotation(boids[i].orientation()+90);
+		triangle.setPosition(sf::Vector2f(boids[i]->x*scaleX,boids[i]->y*scaleY));
+		triangle.setRotation(boids[i]->orientation()+90);
 		window.draw(triangle);
 	}
 }
 
-void renderBoidsHighlight(sf::RenderWindow &window, vector<Boid> boids, double scaleX, double scaleY, int indexToHighlight)
+void renderBoidsHighlight(sf::RenderWindow &window, vector<Boid*> boids, double scaleX, double scaleY, int indexToHighlight)
 {
 	sf::CircleShape triangle(1,3);
 	triangle.setScale(0.5*scaleX*0.3,1*scaleY*0.3);
@@ -31,49 +31,55 @@ void renderBoidsHighlight(sf::RenderWindow &window, vector<Boid> boids, double s
 	for (int i=0; i<boids.size(); i++)
 	{
 		if (i==indexToHighlight) triangle.setFillColor(sf::Color::Red);
-		else if (boids[indexToHighlight].isNeighbour(i)) triangle.setFillColor(sf::Color::Green);
+		else if (boids[indexToHighlight]->isNeighbour(i)) triangle.setFillColor(sf::Color::Green);
 		else triangle.setFillColor(sf::Color::Blue);
 		
-		triangle.setPosition(sf::Vector2f(boids[i].x*scaleX,boids[i].y*scaleY));
-		triangle.setRotation(boids[i].orientation()+90);
+		triangle.setPosition(sf::Vector2f(boids[i]->x*scaleX,boids[i]->y*scaleY));
+		triangle.setRotation(boids[i]->orientation()+90);
 		window.draw(triangle);
 	}
 }
 
-void renderBoidsAsPoints(sf::RenderWindow &window, vector<Boid> boids, double scaleX, double scaleY, double radius_input)
+void renderBoidsAsPoints(sf::RenderWindow &window, vector<Boid*> boids, double scaleX, double scaleY, double radius_input)
 {
 	double radius = radius_input;
+	sf::Color color = sf::Color::Blue;
 	
 	for (int i=0; i<boids.size(); i++)
 	{
-		if (radius_input<0) radius = boids[i].getRadius();
+		if (radius_input<0)
+		{
+			radius = boids[i]->getRadius();
+			color = sf::Color(0,0,255,64);
+		}
 		
 		sf::CircleShape circle(radius);
 		circle.setScale(scaleX,scaleY);
 		circle.setOrigin(radius,radius);
-		circle.setFillColor(sf::Color::Green);
+		circle.setFillColor(color);
 		
 		circle.setPosition(sf::Vector2f(
-			boids[i].x*scaleX,
-			boids[i].y*scaleY
+			boids[i]->x*scaleX,
+			boids[i]->y*scaleY
 			));
 		window.draw(circle);
 	}
 }
 
-void renderForces(sf::RenderWindow &window, vector<Boid> boids, double scaleX, double scaleY)
+
+void renderForces(sf::RenderWindow &window, vector<Boid*> boids, double scaleX, double scaleY)
 {
 	sf::RectangleShape line(sf::Vector2f(1, 0.03));
 	line.setFillColor(sf::Color::Black);
 
 	for (int i=0; i<boids.size(); i++)
 	{
-		double F = sqrt(boids[i].fx*boids[i].fx+boids[i].fy*boids[i].fy);
-		double angleF = angle(0,0,boids[i].fx,boids[i].fy);
+		double F = sqrt(boids[i]->fx*boids[i]->fx+boids[i]->fy*boids[i]->fy);
+		double angleF = angle(0,0,boids[i]->fx,boids[i]->fy);
 		line.setScale(scaleX*F/4,scaleY);
 		line.setPosition(sf::Vector2f(
-			boids[i].x*scaleX,
-			boids[i].y*scaleY
+			boids[i]->x*scaleX,
+			boids[i]->y*scaleY
 			));
 		line.setRotation(angleF);
 		window.draw(line);
@@ -103,14 +109,14 @@ void renderWalls(sf::RenderWindow &window, vector<Wall> walls, double scaleX, do
 	}
 }
 
-void renderWallsInView(sf::RenderWindow &window, vector<Boid> boids, vector<Wall> walls, double scaleX, double scaleY, int i)
+void renderWallsInView(sf::RenderWindow &window, vector<Boid*> boids, vector<Wall> walls, double scaleX, double scaleY, int i)
 {
 	double width = 0.05;
 	sf::RectangleShape line(sf::Vector2f(1, width));
 	line.setOrigin(0,width/2);
 	line.setFillColor(sf::Color::Red);
 	
-	vector<Wall> wallsInView = boids[i].wallsInView;
+	vector<Wall> wallsInView = boids[i]->wallsInView;
 
 	for (int j=0; j<wallsInView.size(); j++)
 	{
@@ -140,7 +146,7 @@ void renderWallsInView(sf::RenderWindow &window, vector<Boid> boids, vector<Wall
 		double y2 = wallsInView[j].y2;
 		
 		double xw, yw; 
-		wallsInView[j].findClosestPoint(boids[i].x,boids[i].y,xw,yw);
+		wallsInView[j].findClosestPoint(boids[i]->x,boids[i]->y,xw,yw);
 		circle.setPosition(sf::Vector2f(xw*scaleX, yw*scaleY));
 		window.draw(circle);
 	}
