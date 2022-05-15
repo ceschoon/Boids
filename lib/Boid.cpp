@@ -36,6 +36,9 @@ Boid::Boid(double x_, double y_, double orientation_, double v_)
 	fy = 0;
 	neighbours = {};
 	
+	r = 0.3;             // default = 0.3
+	m = 1.0;             // default = 1
+	
 	b = 0.1;             // default = 0.1
 	s = 5.0/180;         // default = 5.0/180
 	w = 25.0/180;        // default = 25.0/180
@@ -283,13 +286,31 @@ void Boid::computeSeparationForce(const vector<Boid> &boids, double &fx_, double
 //////////////////////////// Time evolution ////////////////////////////////
 
 
+void Boid::step_v(double dt)
+{
+	vx += fx/m*dt;
+	vy += fy/m*dt;
+}
+
+
+void Boid::step_x(double dt)
+{
+	x += vx*dt;
+	y += vy*dt;
+}
+
+
 void Boid::step(double dt)
 {
-	x += vx*dt + 0.5*fx*dt*dt;
-	y += vy*dt + 0.5*fy*dt*dt;
+	// Semi-Implicit Euler
+	step_v(dt);
+	step_x(dt);
 	
-	vx += fx*dt;
-	vy += fy*dt;
+	// Whatever that was
+	//x += vx*dt + 0.5*fx/m*dt*dt;
+	//y += vy*dt + 0.5*fy/m*dt*dt;
+	//vx += fx*dt;
+	//vy += fy*dt;
 }
 
 

@@ -34,6 +34,8 @@ class Boid
 		
 		// Accessor-ish
 		
+		double getRadius() const {return r;}
+		double getMass() const {return m;}
 		double getPosX() const {return x;}
 		double getPosY() const {return y;}
 		double orientation() const {return angle(0,0,vx,vy);}
@@ -53,6 +55,8 @@ class Boid
 		void computeSeparationForce(const vector<Boid> &boids, double &fx_, double &fy_);
 		
 		// Time evolution
+		void step_x(double dt);
+		void step_v(double dt);
 		void step(double dt);
 		
 		// Neighbour detection
@@ -81,6 +85,9 @@ class Boid
 		double w;   // wall avoidance coefficient:        F_wall = w*angleDiff^2    (behavioural, perpendicular)
 		
 		// physical properties
+		
+		double r;   // hard-core radius
+		double m;   // mass
 		
 		double a;   // seperation force coefficent: F_seperation = a/r^2            (physical, towards any neighbour boid)
 		double c;   // drag coefficient:                  F_drag = -1/2*c*v^2       (physical, parallel)

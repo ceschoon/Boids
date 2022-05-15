@@ -19,6 +19,7 @@
 #include "Boid.h"
 #include "Math.h"
 #include "Rendering.h"
+#include "hard_spheres.h"
 
 using namespace std;
 using namespace std::chrono;
@@ -111,6 +112,7 @@ void World::render(sf::RenderWindow &window)
 	double scaleY = window.getSize().y/sizeY_;
 	
 	renderWalls(window, walls_, scaleX, scaleY);
+	renderBoidsAsPoints(window, getBoids(), scaleX, scaleY, -1);
 	renderBoidsAsTriangles(window, getBoids(), scaleX, scaleY);
 	
 	steady_clock::time_point stop = steady_clock::now();
@@ -302,20 +304,70 @@ void World::addRandomWallOnSquareGrid()
 
 void World::placeBoids(vector<Boid*> boids)
 {
+	cout << "Placing boids in the World" << endl;
+	
 	double vInit = 1e-5;
 	uniform_real_distribution<double> dist01(0,1);
 	
 	for (int i=0; i<boids.size(); i++) boids_.push_back(boids[i]);
 	
-	for (int i=0; i<boids_.size(); i++)
+	bool valid_config = false;
+	int max_attempts_config = 1000;
+	int num_attempts_config = 0;
+	
+	while (!valid_config)
 	{
-		boids_[i]->x = sizeX_*dist01(gen_);
-		boids_[i]->y = sizeY_*dist01(gen_);
-		boids_[i]->vx = vInit*(-0.5+dist01(gen_)); // to avoid problems when superposed
-		boids_[i]->vy = vInit*(-0.5+dist01(gen_)); // and to initiate randommly-orientated movement
+		valid_config = true;
+		for (int i=0; i<boids_.size(); i++)
+		{
+			bool overlap = true;
+			double x,y;
+			
+			int max_attempts_new_sphere = 1000;
+			int num_attempts_new_sphere = 0;
+			
+			while (overlap)
+			{
+				overlap = false;
+				x = boids[i]->getRadius() + dist01(gen_)*(sizeX_-2*boids[i]->getRadius());
+				y = boids[i]->getRadius() + dist01(gen_)*(sizeY_-2*boids[i]->getRadius());
+				
+				for (int j=0; j<i; j++)
+				{
+					double d2ij = (x-boids_[j]->x)*(x-boids_[j]->x)
+						        + (y-boids_[j]->y)*(y-boids_[j]->y);
+					
+					double dmin = boids[i]->getRadius() + boids[j]->getRadius();
+					
+					if (d2ij < dmin*dmin) overlap = true;
+				}
+				
+				num_attempts_new_sphere ++;
+				if (num_attempts_new_sphere>=max_attempts_new_sphere) 
+				{
+					valid_config = false;
+					break;
+				}
+			}
+			
+			if (!valid_config) break;
+			
+			boids_[i]->x = x;
+			boids_[i]->y = y;
+			boids_[i]->vx = vInit*(-0.5+dist01(gen_));
+			boids_[i]->vy = vInit*(-0.5+dist01(gen_));
+			
+			boids_[i]->updateNeighbours(getBoids(), walls_, i);
+		}
 		
-		boids_[i]->updateNeighbours(getBoids(), walls_, i);
+		num_attempts_config ++;
+		if (num_attempts_config>=max_attempts_config) 
+		{
+			throw runtime_error("Exceeded max allowed attempts while placing boids in the world");
+		}
 	}
+	
+	cout << "  done in " << num_attempts_config << " attempts" << endl;
 }
 
 
@@ -323,10 +375,19 @@ void World::placeBoids(vector<Boid*> boids)
 ///////////////////////////// Time Integration /////////////////////////////
 
 
-void World::advanceTime(double T, double dt)
+void World::advanceTime(double T, double dt_max)
 {
-	for (double t=0; t<T; t+=dt)
+	double t  = 0;
+	double dt = dt_max;
+	
+	while (t<T)
 	{
+		// Do not exceed max time
+		// Update time with dt_max so that the loop can end
+		
+		t += dt_max;
+		if (t+dt>T) dt = T-t;
+		
 		// Compute forces
 		
 		steady_clock::time_point start  = steady_clock::now();
@@ -351,10 +412,45 @@ void World::advanceTime(double T, double dt)
 			profData_.avg_time_allforces += (time_us/boids_.size()-profData_.avg_time_allforces)/n;
 		}
 		
-		// Integrate
+		// Integrate positions based on Hard Spheres dynamics
+		// This is consistent with Euler step as the change is linear in dt
 		
-		for (int i=0; i<boids_.size(); i++) boids_[i]->step(dt);
-		collideWalls(boidsCopy); // here the copy is the old state
+		double L[3] = {sizeX_, sizeY_, 10.0};
+		vector<double> hs_r, hs_m, hs_x, hs_y, hs_z, hs_vx, hs_vy, hs_vz;
+		
+		for (int i=0; i<boids_.size(); i++)
+		{
+			hs_r.push_back( boids_[i]->getRadius() );
+			hs_m.push_back( boids_[i]->getMass() );
+			
+			hs_x.push_back( boids_[i]->x );
+			hs_y.push_back( boids_[i]->y );
+			hs_z.push_back( 5.0 );
+			
+			hs_vx.push_back( boids_[i]->vx );
+			hs_vy.push_back( boids_[i]->vy );
+			hs_vz.push_back( 0.0 );
+		}
+		
+		MyHardSpheres hs_integrator(boids_.size(), L, hs_r, hs_m, hs_x, hs_y, hs_z, hs_vx, hs_vy, hs_vz);
+		hs_integrator.advance_time(dt);
+		
+		//for (int i=0; i<boids_.size(); i++) boids_[i]->step(dt);
+		//collideWalls(boidsCopy); // here the copy is the old state
+		
+		for (int i=0; i<boids_.size(); i++)
+		{
+			boids_[i]->x = hs_integrator.get_x(i);
+			boids_[i]->y = hs_integrator.get_y(i);
+			
+			boids_[i]->vx = hs_integrator.get_vx(i);
+			boids_[i]->vy = hs_integrator.get_vy(i);
+		}
+		
+		// Integrate velocities with computed forces
+		
+		for (int i=0; i<boids_.size(); i++) boids_[i]->step_v(dt);
+		
 		
 		// Update neighbour list
 		
@@ -450,7 +546,6 @@ void World::collideWalls(const vector<Boid> &boidsOld)
 	profData_.calls_collideWalls ++; int n=profData_.calls_collideWalls;
 	profData_.avg_time_collideWalls += (time_us-profData_.avg_time_collideWalls)/n;
 }
-
 
 
 

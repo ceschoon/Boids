@@ -30,7 +30,7 @@ void renderBoidsHighlight(sf::RenderWindow &window, vector<Boid> boids,
                           double scaleX, double scaleY, int indexToHighlight);
 
 void renderBoidsAsPoints(sf::RenderWindow &window, vector<Boid> boids, 
-                         double scaleX, double scaleY);
+                         double scaleX, double scaleY, double radius=-1); // -1 means use the boid radius
 
 void renderForces(sf::RenderWindow &window, vector<Boid> boids, 
                   double scaleX, double scaleY);

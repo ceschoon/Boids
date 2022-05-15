@@ -40,15 +40,19 @@ void renderBoidsHighlight(sf::RenderWindow &window, vector<Boid> boids, double s
 	}
 }
 
-void renderBoidsAsPoints(sf::RenderWindow &window, vector<Boid> boids, double scaleX, double scaleY)
+void renderBoidsAsPoints(sf::RenderWindow &window, vector<Boid> boids, double scaleX, double scaleY, double radius_input)
 {
-	sf::CircleShape circle(0.1);
-	circle.setScale(scaleX,scaleY);
-	circle.setOrigin(0.1,0.1);
-	circle.setFillColor(sf::Color::Blue);
-
+	double radius = radius_input;
+	
 	for (int i=0; i<boids.size(); i++)
 	{
+		if (radius_input<0) radius = boids[i].getRadius();
+		
+		sf::CircleShape circle(radius);
+		circle.setScale(scaleX,scaleY);
+		circle.setOrigin(radius,radius);
+		circle.setFillColor(sf::Color::Green);
+		
 		circle.setPosition(sf::Vector2f(
 			boids[i].x*scaleX,
 			boids[i].y*scaleY
